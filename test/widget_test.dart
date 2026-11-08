@@ -6,6 +6,8 @@ import 'package:do_an_cuoiky/providers/auth_provider.dart';
 import 'package:do_an_cuoiky/providers/rental_provider.dart';
 import 'package:do_an_cuoiky/providers/settings_provider.dart';
 import 'package:do_an_cuoiky/services/settings_service.dart';
+import 'package:do_an_cuoiky/l10n/app_localizations.dart';
+import 'package:flutter/material.dart';
 
 void main() {
   testWidgets('App smoke test - Login screen renders initially', (WidgetTester tester) async {
@@ -94,5 +96,21 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(settingsProvider.isDarkMode, false);
+  });
+
+  test('AppLocalizations unit test - Supported locales and key lookups', () {
+    expect(AppLocalizations.supportedLocales.length, 3);
+    
+    final viLoc = AppLocalizations(const Locale('vi', 'VN'));
+    expect(viLoc.appTitle, 'Quản lý Phòng trọ');
+    expect(viLoc.langVi, 'Tiếng Việt');
+    
+    final enLoc = AppLocalizations(const Locale('en', 'US'));
+    expect(enLoc.appTitle, 'Rental Room Management');
+    expect(enLoc.langEn, 'English');
+    
+    final zhLoc = AppLocalizations(const Locale('zh', 'CN'));
+    expect(zhLoc.appTitle, '房屋出租管理系统');
+    expect(zhLoc.langZh, '中文');
   });
 }
