@@ -1,7 +1,5 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqflite/sqflite.dart';
 import '../data/mock_data.dart';
 import '../models/invoice_model.dart';
 import '../models/maintenance_request_model.dart';
@@ -20,7 +18,7 @@ import '../models/room_model.dart';
 /// ============================================================================
 class DatabaseHelper {
   static const String _dbName = 'rental_management.db';
-  static const int _dbVersion = 3; // Phiên bản 3 hỗ trợ bảo trì thiết bị
+  static const int _dbVersion = 3;
 
   static Database? _database;
 
@@ -33,11 +31,6 @@ class DatabaseHelper {
 
   /// Khởi tạo và kết nối cơ sở dữ liệu SQLite
   static Future<Database> _initDatabase() async {
-    if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
-      sqfliteFfiInit();
-      databaseFactory = databaseFactoryFfi;
-    }
-
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, _dbName);
 
