@@ -1,3 +1,13 @@
+/// ============================================================================
+/// FILE: main.dart
+/// MỤC ĐÍCH: Điểm khởi chạy chính (Entry Point) của ứng dụng Quản lý Phòng trọ.
+/// CHỨC NĂNG:
+/// - Khởi tạo các dịch vụ nền: SQLite Database, SharedPreferences, Supabase Cloud.
+/// - Đăng ký MultiProvider (AuthProvider, RentalProvider, SettingsProvider).
+/// - Cấu hình Đa ngôn ngữ (Việt / Anh / Trung) & Chế độ giao diện Tối/Sáng (Dark Mode).
+/// ============================================================================
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -6,13 +16,19 @@ import 'providers/auth_provider.dart';
 import 'providers/rental_provider.dart';
 import 'providers/settings_provider.dart';
 import 'services/settings_service.dart';
+import 'services/supabase_service.dart';
 import 'theme/app_theme.dart';
 import 'views/login_screen.dart';
 import 'views/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // 1. Khởi tạo dịch vụ lưu trữ cấu hình SharedPreferences
   final settingsService = await SettingsService.init();
+
+  // 2. Khởi tạo kết nối CSDL Đám mây Supabase (nếu có mạng)
+  await SupabaseService.init();
 
   runApp(
     MultiProvider(

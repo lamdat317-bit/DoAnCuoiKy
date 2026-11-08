@@ -1,3 +1,14 @@
+/// ============================================================================
+/// FILE: views/room_list_tab.dart
+/// GIAO DIỆN: TAB 2 - DANH SÁCH PHÒNG TRỌ (ROOM LIST TAB)
+/// CHỨC NĂNG CHÍNH:
+/// - Ô tìm kiếm thông minh theo Tên phòng, Họ tên khách thuê hoặc Số điện thoại.
+/// - Các thẻ lọc trạng thái Filter Chips: Tất cả, Trống, Đang thuê, Bảo trì.
+/// - Danh sách các thẻ phòng `RoomCard` tương tác.
+/// - Nút FloatingActionButton "+ Thêm phòng mới" mở Hộp thoại AddRoomDialog.
+/// ============================================================================
+library;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
@@ -47,11 +58,9 @@ class _RoomListTabState extends State<RoomListTab> {
     final loc = context.loc;
 
     final filteredRooms = provider.rooms.where((room) {
-      // Status filter
       if (_selectedFilter != null && room.status != _selectedFilter) {
         return false;
       }
-      // Text search filter
       if (_searchQuery.isNotEmpty) {
         final matchesName = room.name.toLowerCase().contains(_searchQuery);
         final matchesTenant =
@@ -65,7 +74,7 @@ class _RoomListTabState extends State<RoomListTab> {
     return Scaffold(
       body: Column(
         children: [
-          // Search Bar
+          // Ô tìm kiếm phòng
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: TextField(
@@ -92,7 +101,7 @@ class _RoomListTabState extends State<RoomListTab> {
             ),
           ),
 
-          // Filter Chips Row
+          // Bộ lọc Trạng thái phòng (Filter Chips)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -149,7 +158,7 @@ class _RoomListTabState extends State<RoomListTab> {
             ),
           ),
 
-          // Room List
+          // Danh sách các thẻ phòng
           Expanded(
             child: filteredRooms.isEmpty
                 ? Center(

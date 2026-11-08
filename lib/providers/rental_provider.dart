@@ -11,7 +11,7 @@ import '../services/database_helper.dart';
 /// ============================================================================
 /// Đây là trung tâm quản lý State và Business Logic chính của ứng dụng.
 /// Phân chia 5 nhóm chức năng lớn:
-/// 1. Tải & Thống kê Dữ liệu Tổng quan (Dashboard Analytics)
+/// 1. Tải & Thống kê Dữ liệu Tổng quan (Dashboard Analytics & Revenue Chart)
 /// 2. Quản lý Phòng trọ (CRUD Room & Trạng thái Phòng)
 /// 3. Quản lý Hóa đơn & Gạch nợ (Invoices & Debt Payment)
 /// 4. Quản lý Cư dân & CCCD/CMND (Room Members & CCCD Registry)
@@ -35,7 +35,7 @@ class RentalProvider extends ChangeNotifier {
   }
 
   // ===========================================================================
-  // 1. TẢI DỮ LIỆU & BÁO CÁO THỐNG KÊ (DASHBOARD ANALYTICS)
+  // 1. TẢI DỮ LIỆU & BÁO CÁO THỐNG KÊ (DASHBOARD ANALYTICS & REVENUE CHART)
   // ===========================================================================
 
   /// Tải toàn bộ dữ liệu phòng trọ, hóa đơn & sự cố bảo trì từ SQLite
@@ -98,6 +98,31 @@ class RentalProvider extends ChangeNotifier {
   /// Tổng chi phí sửa chữa bảo trì
   double get totalMaintenanceCost => _maintenanceRequests.fold(
       0.0, (sum, req) => sum + req.repairCost);
+
+  /// Lấy thống kê doanh thu 6 tháng gần nhất cho biểu đồ fl_chart
+  Map<String, double> getMonthlyRevenueStats() {
+    final now = DateTime.now();
+    final Map<String, double> stats = {};
+
+    for (int i = 5; i >= 0; i--) {
+      final monthDate = DateTime(now.year, now.month - i, 1);
+      final label = 'T.${monthDate.month}';
+
+      final monthlyTotal = _invoices
+          .where((inv) =>
+              inv.createdAt.year == monthDate.year &&
+              inv.createdAt.month == monthDate.month)
+          .fold(0.0, (sum, inv) => sum + inv.totalAmount);
+
+      if (i == 0 && monthlyTotal == 0.0) {
+        stats[label] = totalExpectedRevenue;
+      } else {
+        stats[label] = monthlyTotal;
+      }
+    }
+
+    return stats;
+  }
 
   // ===========================================================================
   // 2. QUẢN LÝ PHÒNG TRỌ (ROOM MANAGEMENT)

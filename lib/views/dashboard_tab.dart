@@ -1,22 +1,33 @@
+/// ============================================================================
+/// FILE: views/dashboard_tab.dart
+/// GIAO DIỆN: TAB 1 - BẢNG ĐIỀU KHIỂN TỔNG QUAN (DASHBOARD TAB)
+/// CHỨC NĂNG CHÍNH:
+/// - Thẻ chào mừng & Thông tin tài khoản chủ trọ.
+/// - Banner Doanh thu dự kiến tháng.
+/// - Thẻ cảnh báo TỔNG CÔNG NỢ CHƯA THU (Hóa đơn PENDING).
+/// - 3 Card thống kê tương tác: Phòng trống, Đang thuê, Tỷ lệ lấp đầy (%).
+/// - Biểu đồ thống kê doanh thu 6 tháng gần nhất (`fl_chart`).
+/// - Danh sách các phòng cần chốt tiền điện nước trong tháng.
+/// - Lịch sử hóa đơn vừa lập gần đây.
+/// ============================================================================
+library;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../l10n/app_localizations.dart';
 import '../models/invoice_model.dart';
 import '../models/room_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/rental_provider.dart';
 import 'invoice_detail_dialog.dart';
-import 'maintenance_screen.dart';
 import 'settings_screen.dart';
 import 'widgets/billing_bottom_sheet.dart';
+import 'widgets/revenue_chart_card.dart';
 
-/// ============================================================================
-/// UI TAB: Màn Hình Tổng Quan Báo Cáo Thống Kê (DashboardTab)
-/// ============================================================================
 class DashboardTab extends StatelessWidget {
   const DashboardTab({super.key});
 
+  /// Mở BottomSheet chốt tiền điện nước cho một phòng
   void _openBillingBottomSheet(BuildContext context, Room room) {
     showModalBottomSheet(
       context: context,
@@ -26,6 +37,7 @@ class DashboardTab extends StatelessWidget {
     );
   }
 
+  /// Mở Hộp thoại chi tiết hóa đơn & mã VietQR
   void _showInvoiceDetail(BuildContext context, Invoice inv) {
     showDialog(
       context: context,
@@ -33,6 +45,7 @@ class DashboardTab extends StatelessWidget {
     );
   }
 
+  /// Mở danh sách chi tiết các phòng khi bấm vào các Card thống kê
   void _showRoomListModal(
     BuildContext context, {
     required String title,
@@ -43,7 +56,6 @@ class DashboardTab extends StatelessWidget {
     final currencyFormatter =
         NumberFormat.currency(locale: 'vi_VN', symbol: 'đ', decimalDigits: 0);
     final dateFormat = DateFormat('dd/MM/yyyy');
-    final loc = context.loc;
 
     showModalBottomSheet(
       context: context,
@@ -53,14 +65,13 @@ class DashboardTab extends StatelessWidget {
         initialChildSize: 0.7,
         minChildSize: 0.4,
         maxChildSize: 0.9,
-        builder: (ctx2, scrollController) => Container(
-          decoration: BoxDecoration(
-            color: Theme.of(ctx2).cardColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        builder: (_, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
             children: [
-              // Drag Indicator & Header
               Container(
                 margin: const EdgeInsets.only(top: 12, bottom: 8),
                 width: 40,
@@ -81,7 +92,7 @@ class DashboardTab extends StatelessWidget {
                           radius: 16,
                           backgroundColor: primaryColor.withValues(alpha: 0.15),
                           child: Icon(
-                            primaryColor == Colors.green
+                            title.contains('trống')
                                 ? Icons.meeting_room
                                 : Icons.group,
                             color: primaryColor,
@@ -108,7 +119,6 @@ class DashboardTab extends StatelessWidget {
               ),
               const Divider(height: 1),
 
-              // Room list
               Expanded(
                 child: rooms.isEmpty
                     ? Center(
@@ -161,7 +171,7 @@ class DashboardTab extends StatelessWidget {
                                         const Icon(Icons.person,
                                             size: 15, color: Colors.grey),
                                         const SizedBox(width: 4),
-                                        Text('${loc.tenant}: ${room.tenantName ?? loc.unknownTenant}',
+                                        Text('Khách: ${room.tenantName ?? 'N/A'}',
                                             style: const TextStyle(
                                                 fontWeight: FontWeight.w500)),
                                         const Spacer(),
@@ -183,7 +193,7 @@ class DashboardTab extends StatelessWidget {
                                         const Icon(Icons.group,
                                             size: 15, color: Colors.orange),
                                         const SizedBox(width: 4),
-                                        Text('${loc.occupantCount}: ${room.occupantCount} ${loc.people}',
+                                        Text('Số người ở: ${room.occupantCount} người',
                                             style: const TextStyle(fontSize: 12)),
                                       ],
                                     ),
@@ -191,14 +201,14 @@ class DashboardTab extends StatelessWidget {
                                     Row(
                                       children: [
                                         Text(
-                                          '📅 ${loc.checkIn}: ${room.checkInDate != null ? dateFormat.format(room.checkInDate!) : 'N/A'}',
+                                          '📅 Vào ở: ${room.checkInDate != null ? dateFormat.format(room.checkInDate!) : 'N/A'}',
                                           style: TextStyle(
                                               fontSize: 11,
                                               color: Colors.grey.shade700),
                                         ),
                                         const SizedBox(width: 12),
                                         Text(
-                                          '🏁 ${loc.checkOut}: ${room.checkOutDate != null ? dateFormat.format(room.checkOutDate!) : 'N/A'}',
+                                          '🏁 Out: ${room.checkOutDate != null ? dateFormat.format(room.checkOutDate!) : 'N/A'}',
                                           style: const TextStyle(
                                               fontSize: 11,
                                               color: Colors.red,
@@ -215,7 +225,7 @@ class DashboardTab extends StatelessWidget {
                                           _openBillingBottomSheet(context, room);
                                         },
                                         icon: const Icon(Icons.calculate, size: 16),
-                                        label: Text(loc.billingAction),
+                                        label: const Text('Chốt tiền điện nước'),
                                         style: OutlinedButton.styleFrom(
                                           padding: const EdgeInsets.symmetric(vertical: 6),
                                         ),
@@ -223,7 +233,7 @@ class DashboardTab extends StatelessWidget {
                                     ),
                                   ] else ...[
                                     Text(
-                                      '${loc.initialElecLabel}: ${room.oldElectricity} kWh | ${loc.initialWaterLabel}: ${room.oldWater} m³',
+                                      'Chỉ số điện cũ: ${room.oldElectricity} kWh | Nước cũ: ${room.oldWater} m³',
                                       style: TextStyle(
                                           fontSize: 12,
                                           color: Colors.grey.shade600),
@@ -237,7 +247,7 @@ class DashboardTab extends StatelessWidget {
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
-                                        loc.roomStatus(room.status),
+                                        'Trạng thái: Trống (Sẵn sàng cho thuê)',
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.bold,
@@ -260,8 +270,8 @@ class DashboardTab extends StatelessWidget {
     );
   }
 
+  /// Xây dựng Card thống kê tương tác (Phòng trống, Đang thuê, Tỷ lệ lấp đầy)
   Widget _buildStatCard({
-    required BuildContext context,
     required String title,
     required String value,
     required IconData icon,
@@ -270,7 +280,7 @@ class DashboardTab extends StatelessWidget {
   }) {
     return Expanded(
       child: Material(
-        color: Theme.of(context).cardColor,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         elevation: 1,
         shadowColor: const Color(0x14000000),
@@ -295,15 +305,12 @@ class DashboardTab extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Flexible(
-                      child: Text(
-                        title,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
                       ),
                     ),
                     if (onTap != null) ...[
@@ -324,7 +331,6 @@ class DashboardTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final provider = context.watch<RentalProvider>();
-    final loc = context.loc;
     final currencyFormatter =
         NumberFormat.currency(locale: 'vi_VN', symbol: 'đ', decimalDigits: 0);
 
@@ -333,22 +339,24 @@ class DashboardTab extends StatelessWidget {
     final occupiedRooms =
         provider.rooms.where((r) => r.status == RoomStatus.occupied).toList();
 
+    final monthlyStats = provider.getMonthlyRevenueStats();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // User Welcome Greeting Card + Quick Settings Button
+          // 1. Thẻ Chào mừng Chủ trọ + Nút Cài đặt nhanh
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: [
+              boxShadow: const [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
+                  color: Color(0x0A000000),
                   blurRadius: 6,
-                  offset: const Offset(0, 2),
+                  offset: Offset(0, 2),
                 ),
               ],
             ),
@@ -365,7 +373,7 @@ class DashboardTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${loc.login.toLowerCase() == 'login' ? 'Hello' : loc.language == '语言设置' ? '您好' : 'Xin chào'}, ${auth.userName} 👋',
+                        'Xin chào, ${auth.userName} 👋',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -374,7 +382,7 @@ class DashboardTab extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${loc.systemRole}: ${auth.userRole == 'Chủ trọ' ? loc.roleLandlord : auth.userRole} | ${auth.userEmail ?? ''}',
+                        'Vai trò: ${auth.userRole} | ${auth.userEmail ?? ''}',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey.shade600,
@@ -385,19 +393,8 @@ class DashboardTab extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.build_circle_outlined, color: Colors.orange),
-                  tooltip: 'Quản lý Bảo trì Sự cố',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const MaintenanceScreen()),
-                    );
-                  },
-                ),
-                IconButton(
                   icon: const Icon(Icons.settings, color: Color(0xFF3F51B5)),
-                  tooltip: loc.settingsTitle,
+                  tooltip: 'Cài đặt Biểu phí & VietQR',
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -410,7 +407,7 @@ class DashboardTab extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Banner Doanh Thu Dự Kiến
+          // 2. Banner Doanh Thu Dự Kiến Tháng
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
@@ -435,9 +432,9 @@ class DashboardTab extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      loc.expectedRevenue,
-                      style: const TextStyle(
+                    const Text(
+                      'DOANH THU DỰ KIẾN THÁNG',
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                         color: Colors.white70,
@@ -468,9 +465,9 @@ class DashboardTab extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  loc.basedOnRentedRooms,
-                  style: const TextStyle(
+                const Text(
+                  'Dựa trên các phòng đang cho thuê',
+                  style: TextStyle(
                     fontSize: 13,
                     color: Color(0xE6FFFFFF),
                   ),
@@ -480,7 +477,7 @@ class DashboardTab extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Unpaid Debt Card
+          // 3. Card Cảnh báo TỔNG CÔNG NỢ CHƯA THU (Nếu có hóa đơn PENDING)
           if (provider.totalUnpaidDebt > 0) ...[
             Container(
               width: double.infinity,
@@ -502,9 +499,9 @@ class DashboardTab extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          loc.totalUnpaidDebt,
-                          style: const TextStyle(
+                        const Text(
+                          'TỔNG CÔNG NỢ CHƯA THU',
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: Colors.deepOrange,
@@ -520,7 +517,7 @@ class DashboardTab extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          loc.unpaidInvoicesCount(provider.unpaidInvoicesCount),
+                          'Hiện có ${provider.unpaidInvoicesCount} hóa đơn chưa thanh toán',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade800,
@@ -535,133 +532,68 @@ class DashboardTab extends StatelessWidget {
             const SizedBox(height: 16),
           ],
 
-          // Maintenance Alert Card (Sự cố bảo trì cần xử lý)
-          if (provider.pendingMaintenanceCount > 0) ...[
-            InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const MaintenanceScreen()),
-                );
-              },
-              borderRadius: BorderRadius.circular(14),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.blue.shade300),
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: Colors.blue.shade100,
-                      child: const Icon(Icons.build_outlined,
-                          color: Colors.blue),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'SỰ CỐ BẢO TRÌ CẦN XỬ LÝ',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF3F51B5),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${provider.pendingMaintenanceCount} yêu cầu hỏng hóc chưa xong',
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF3F51B5),
-                            ),
-                          ),
-                          Text(
-                            'Bấm vào để xem danh sách & cập nhật chi phí sửa chữa',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.chevron_right, color: Color(0xFF3F51B5)),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          // 3 Interactive Stat Cards Row
+          // 4. 3 Thẻ thống kê tương tác (Phòng trống, Đang thuê, Lấp đầy %)
           Row(
             children: [
               _buildStatCard(
-                context: context,
-                title: loc.statAvailable,
+                title: 'Phòng trống',
                 value: '${provider.availableCount}',
                 icon: Icons.meeting_room_outlined,
                 color: Colors.green,
                 onTap: () {
                   _showRoomListModal(
                     context,
-                    title: loc.modalAvailableRooms,
+                    title: 'Danh sách Phòng trống',
                     rooms: availableRooms,
                     primaryColor: Colors.green,
-                    emptyMessage: loc.noEmptyRoomsMsg,
+                    emptyMessage: 'Hiện không có phòng nào đang trống',
                   );
                 },
               ),
               const SizedBox(width: 10),
               _buildStatCard(
-                context: context,
-                title: loc.statOccupied,
+                title: 'Đang thuê',
                 value: '${provider.occupiedCount}',
                 icon: Icons.people_outline,
                 color: Colors.orange,
                 onTap: () {
                   _showRoomListModal(
                     context,
-                    title: loc.modalOccupiedRooms,
+                    title: 'Danh sách Phòng đang thuê',
                     rooms: occupiedRooms,
                     primaryColor: Colors.orange.shade900,
-                    emptyMessage: loc.noRentedRoomsMsg,
+                    emptyMessage: 'Hiện chưa có phòng nào đang thuê',
                   );
                 },
               ),
               const SizedBox(width: 10),
               _buildStatCard(
-                context: context,
-                title: loc.statOccupancy,
+                title: 'Lấp đầy',
                 value: '${provider.occupancyRate.toStringAsFixed(0)}%',
                 icon: Icons.pie_chart_outline,
                 color: const Color(0xFF3F51B5),
                 onTap: () {
                   _showRoomListModal(
                     context,
-                    title: loc.modalOccupancyRooms,
+                    title: 'Tỷ lệ Lấp đầy & Toàn bộ phòng',
                     rooms: provider.rooms,
                     primaryColor: const Color(0xFF3F51B5),
-                    emptyMessage: loc.noRoomsData,
+                    emptyMessage: 'Chưa có dữ liệu phòng',
                   );
                 },
               ),
             ],
           ),
+          const SizedBox(height: 20),
+
+          // 5. Biểu đồ Thống kê Doanh thu 6 Tháng (fl_chart)
+          RevenueChartCard(monthlyStats: monthlyStats),
           const SizedBox(height: 24),
 
-          // Section: Chốt điện nước
-          Text(
-            loc.roomsNeedBilling,
-            style: const TextStyle(
+          // 6. Danh sách phòng cần chốt điện nước tháng này
+          const Text(
+            'Phòng cần chốt điện nước tháng này',
+            style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.bold,
               color: Color(0xFF3F51B5),
@@ -673,12 +605,12 @@ class DashboardTab extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Text(
-                loc.noRentedRooms,
-                style: const TextStyle(color: Colors.grey),
+              child: const Text(
+                'Hiện chưa có phòng nào đang thuê',
+                style: TextStyle(color: Colors.grey),
               ),
             )
           else
@@ -706,7 +638,7 @@ class DashboardTab extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                      '${loc.tenant}: ${room.tenantName ?? loc.unknownTenant}\n${loc.oldIndex} (${loc.electricityCharge}): ${room.oldElectricity} kWh | ${loc.oldIndex} (${loc.waterCharge}): ${room.oldWater} m³',
+                      'Khách: ${room.tenantName ?? 'Chưa rõ'}\nĐiện cũ: ${room.oldElectricity} kWh | Nước cũ: ${room.oldWater} m³',
                     ),
                     isThreeLine: true,
                     trailing: ElevatedButton(
@@ -717,7 +649,7 @@ class DashboardTab extends StatelessWidget {
                           vertical: 8,
                         ),
                       ),
-                      child: Text(loc.billingAction, style: const TextStyle(fontSize: 13)),
+                      child: const Text('Tính tiền', style: TextStyle(fontSize: 13)),
                     ),
                   ),
                 );
@@ -725,11 +657,11 @@ class DashboardTab extends StatelessWidget {
             ),
           const SizedBox(height: 24),
 
-          // Lịch sử hóa đơn gần đây
+          // 7. Lịch sử Hóa đơn vừa lập gần đây
           if (provider.invoices.isNotEmpty) ...[
-            Text(
-              loc.recentInvoices,
-              style: const TextStyle(
+            const Text(
+              'Hóa đơn vừa lập gần đây',
+              style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF3F51B5),
@@ -760,7 +692,7 @@ class DashboardTab extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                        '${loc.createdDate}: $formattedDate\n${loc.invoiceStatus(inv.status)}'),
+                        'Ngày tạo: $formattedDate\nTrạng thái: ${inv.status.displayName}'),
                     isThreeLine: true,
                     trailing: Text(
                       currencyFormatter.format(inv.totalAmount),

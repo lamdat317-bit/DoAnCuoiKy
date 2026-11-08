@@ -1,3 +1,13 @@
+/// ============================================================================
+/// FILE: views/main_screen.dart
+/// UI SCREEN: Màn Hình Chính Chứa Thanh Điều Hướng BottomNavigationBar (MainScreen)
+/// CHỨC NĂNG CHÍNH:
+/// - Khung điều hướng chuyển đổi 3 Tab chính: Dashboard, Phòng trọ, Hóa đơn.
+/// - AppBar tích hợp nút Nút Báo bảo trì, Chuyển Dark/Light Mode, Chọn Ngôn ngữ.
+/// - Popup Menu hiển thị Thông tin cá nhân, Đổi mật khẩu & Đăng xuất tài khoản.
+/// ============================================================================
+library;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
@@ -8,9 +18,6 @@ import 'maintenance_screen.dart';
 import 'room_list_tab.dart';
 import 'widgets/language_selector.dart';
 
-/// ============================================================================
-/// UI SCREEN: Màn Hình Chính Chứa Thanh Điều Hướng BottomNavigationBar (MainScreen)
-/// ============================================================================
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -254,7 +261,6 @@ class _MainScreenState extends State<MainScreen> {
       appBar: AppBar(
         title: Text(_getTitle(_currentIndex, loc)),
         actions: [
-          // Nút Bảo trì sự cố
           IconButton(
             icon: const Icon(Icons.build_circle_outlined, color: Colors.orange),
             tooltip: 'Quản lý Bảo trì Sự cố',
@@ -265,9 +271,7 @@ class _MainScreenState extends State<MainScreen> {
               );
             },
           ),
-          // Nút Chuyển Theme (Sáng / Tối)
           const ThemeToggleActionItem(),
-          // Nút Chọn Ngôn Ngữ Nhanh
           const LanguagePickerActionItem(),
           const SizedBox(width: 4),
 

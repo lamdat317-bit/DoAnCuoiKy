@@ -1,3 +1,13 @@
+/// ============================================================================
+/// FILE: views/invoice_list_tab.dart
+/// GIAO DIỆN: TAB 3 - LỊCH SỬ HÓA ĐƠN & CÔNG NỢ (INVOICE LIST TAB)
+/// CHỨC NĂNG CHÍNH:
+/// - Danh sách các hóa đơn chốt tiền điện nước đã lập.
+/// - Bộ lọc trạng thái hóa đơn: *Tất cả*, *Chưa thu (PENDING)*, *Đã thu (PAID)*.
+/// - Bấm vào từng hóa đơn để xem chi tiết, tạo VietQR hoặc gạch nợ.
+/// ============================================================================
+library;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -43,7 +53,7 @@ class _InvoiceListTabState extends State<InvoiceListTab> {
     return Scaffold(
       body: Column(
         children: [
-          // Filter Chips
+          // Thẻ Lọc Trạng Thái Hóa Đơn
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Row(
@@ -86,7 +96,7 @@ class _InvoiceListTabState extends State<InvoiceListTab> {
             ),
           ),
 
-          // Invoice list
+          // Danh sách các Hóa đơn
           Expanded(
             child: filteredInvoices.isEmpty
                 ? Center(
