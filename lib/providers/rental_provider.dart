@@ -108,17 +108,13 @@ class RentalProvider extends ChangeNotifier {
       final monthDate = DateTime(now.year, now.month - i, 1);
       final label = 'T.${monthDate.month}';
 
-      final monthlyTotal = _invoices
+      // Doanh thu thực tế = tổng tiền các hóa đơn lập trong tháng
+      // (Không lấy "doanh thu dự kiến" bù vào để tránh hiển thị sai số liệu)
+      stats[label] = _invoices
           .where((inv) =>
               inv.createdAt.year == monthDate.year &&
               inv.createdAt.month == monthDate.month)
           .fold(0.0, (sum, inv) => sum + inv.totalAmount);
-
-      if (i == 0 && monthlyTotal == 0.0) {
-        stats[label] = totalExpectedRevenue;
-      } else {
-        stats[label] = monthlyTotal;
-      }
     }
 
     return stats;
@@ -145,9 +141,11 @@ class RentalProvider extends ChangeNotifier {
     }
   }
 
-  /// Xóa phòng trọ khỏi hệ thống
+  /// Xóa phòng trọ khỏi hệ thống, kèm hóa đơn & sự cố bảo trì của phòng đó
   Future<void> deleteRoom(String roomId) async {
     _rooms.removeWhere((r) => r.id == roomId);
+    _invoices.removeWhere((inv) => inv.roomId == roomId);
+    _maintenanceRequests.removeWhere((req) => req.roomId == roomId);
     _roomMembersMap.remove(roomId);
     notifyListeners();
     await DatabaseHelper.deleteRoom(roomId);
@@ -159,8 +157,7 @@ class RentalProvider extends ChangeNotifier {
     if (index != -1) {
       _rooms[index] = _rooms[index].copyWith(
         status: status,
-        tenantName: status == RoomStatus.occupied ? _rooms[index].tenantName : null,
-        phone: status == RoomStatus.occupied ? _rooms[index].phone : null,
+        clearTenant: status != RoomStatus.occupied,
       );
       notifyListeners();
       await DatabaseHelper.updateRoom(_rooms[index]);
@@ -173,6 +170,11 @@ class RentalProvider extends ChangeNotifier {
 
   /// Tạo hóa đơn tính tiền mới & cập nhật chỉ số điện/nước mới cho phòng
   Future<void> createInvoiceAndRecord(Invoice invoice) async {
+    // Chặn chỉ số mới nhỏ hơn chỉ số cũ (tránh lượng dùng bị tính = 0 âm thầm)
+    if (invoice.newElec < invoice.oldElec ||
+        invoice.newWater < invoice.oldWater) {
+      throw ArgumentError('Chỉ số mới không được nhỏ hơn chỉ số cũ');
+    }
     _invoices.insert(0, invoice);
 
     final index = _rooms.indexWhere((r) => r.id == invoice.roomId);
@@ -206,6 +208,10 @@ class RentalProvider extends ChangeNotifier {
   Future<void> checkoutRoom(String roomId, int lastElec, int lastWater) async {
     final index = _rooms.indexWhere((r) => r.id == roomId);
     if (index != -1) {
+      if (lastElec < _rooms[index].oldElectricity ||
+          lastWater < _rooms[index].oldWater) {
+        throw ArgumentError('Chỉ số cuối không được nhỏ hơn chỉ số cũ');
+      }
       _rooms[index] = _rooms[index].copyWith(
         status: RoomStatus.available,
         tenantName: null,
@@ -216,6 +222,7 @@ class RentalProvider extends ChangeNotifier {
         checkInDate: null,
         checkOutDate: null,
         depositAmount: 0.0,
+        clearTenant: true,
       );
       _roomMembersMap.remove(roomId);
       await DatabaseHelper.deleteMembersForRoom(roomId);
@@ -315,6 +322,7 @@ class RentalProvider extends ChangeNotifier {
         status: status,
         repairCost: repairCost,
         completedAt: status == MaintenanceStatus.completed ? now : null,
+        clearCompletedAt: status != MaintenanceStatus.completed,
       );
       notifyListeners();
       await DatabaseHelper.updateMaintenanceRequest(_maintenanceRequests[index]);

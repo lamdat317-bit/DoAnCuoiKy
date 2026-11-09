@@ -59,6 +59,7 @@ class MaintenanceRequest {
     MaintenanceStatus? status,
     DateTime? createdAt,
     DateTime? completedAt,
+    bool clearCompletedAt = false,
   }) {
     return MaintenanceRequest(
       id: id ?? this.id,
@@ -69,7 +70,7 @@ class MaintenanceRequest {
       repairCost: repairCost ?? this.repairCost,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
-      completedAt: completedAt ?? this.completedAt,
+      completedAt: clearCompletedAt ? null : (completedAt ?? this.completedAt),
     );
   }
 

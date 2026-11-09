@@ -135,6 +135,12 @@ class _CheckoutDialogState extends State<CheckoutDialog> {
                         labelText: loc.finalElectricity,
                         suffixText: 'kWh',
                       ),
+                      validator: (value) {
+                        final val = int.tryParse(value?.trim() ?? '');
+                        if (val == null) return loc.invalidNumber;
+                        if (val < widget.room.oldElectricity) return loc.newIndexCannotBeLess;
+                        return null;
+                      },
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -146,6 +152,12 @@ class _CheckoutDialogState extends State<CheckoutDialog> {
                         labelText: loc.finalWater,
                         suffixText: 'm³',
                       ),
+                      validator: (value) {
+                        final val = int.tryParse(value?.trim() ?? '');
+                        if (val == null) return loc.invalidNumber;
+                        if (val < widget.room.oldWater) return loc.newIndexCannotBeLess;
+                        return null;
+                      },
                     ),
                   ),
                 ],
@@ -225,6 +237,7 @@ class _CheckoutDialogState extends State<CheckoutDialog> {
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 onPressed: () async {
+                  if (!_formKey.currentState!.validate()) return;
                   await context.read<RentalProvider>().checkoutRoom(
                         widget.room.id,
                         _lastElec,

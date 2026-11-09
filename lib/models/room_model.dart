@@ -63,21 +63,22 @@ class Room {
     DateTime? checkInDate,
     DateTime? checkOutDate,
     double? depositAmount,
+    bool clearTenant = false,
   }) {
     return Room(
       id: id ?? this.id,
       name: name ?? this.name,
       basePrice: basePrice ?? this.basePrice,
       status: status ?? this.status,
-      tenantName: tenantName ?? this.tenantName,
-      phone: phone ?? this.phone,
-      contractEnd: contractEnd ?? this.contractEnd,
+      tenantName: clearTenant ? tenantName : (tenantName ?? this.tenantName),
+      phone: clearTenant ? phone : (phone ?? this.phone),
+      contractEnd: clearTenant ? contractEnd : (contractEnd ?? this.contractEnd),
       oldElectricity: oldElectricity ?? this.oldElectricity,
       oldWater: oldWater ?? this.oldWater,
       imageUrl: imageUrl ?? this.imageUrl,
       occupantCount: occupantCount ?? this.occupantCount,
-      checkInDate: checkInDate ?? this.checkInDate,
-      checkOutDate: checkOutDate ?? this.checkOutDate,
+      checkInDate: clearTenant ? checkInDate : (checkInDate ?? this.checkInDate),
+      checkOutDate: clearTenant ? checkOutDate : (checkOutDate ?? this.checkOutDate),
       depositAmount: depositAmount ?? this.depositAmount,
     );
   }

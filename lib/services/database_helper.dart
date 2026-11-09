@@ -173,14 +173,18 @@ class DatabaseHelper {
   }
 
   /// Xóa phòng trọ & các dữ liệu liên quan
+  /// (thành viên, hóa đơn, sự cố bảo trì) trong cùng một transaction để
+  /// Dashboard không còn tính doanh thu/chi phí của phòng đã xóa.
   static Future<void> deleteRoom(String roomId) async {
     final db = await database;
-    await db.delete(
-      'rooms',
-      where: 'id = ?',
-      whereArgs: [roomId],
-    );
-    await deleteMembersForRoom(roomId);
+    await db.transaction((txn) async {
+      await txn.delete('room_members',
+          where: 'room_id = ?', whereArgs: [roomId]);
+      await txn.delete('invoices', where: 'room_id = ?', whereArgs: [roomId]);
+      await txn.delete('maintenance_requests',
+          where: 'room_id = ?', whereArgs: [roomId]);
+      await txn.delete('rooms', where: 'id = ?', whereArgs: [roomId]);
+    });
   }
 
   // ===========================================================================
