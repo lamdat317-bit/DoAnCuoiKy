@@ -99,12 +99,27 @@ class _BillingBottomSheetState extends State<BillingBottomSheet> {
           status: InvoiceStatus.pending,
         );
 
-        await context.read<RentalProvider>().createInvoiceAndRecord(invoice);
+        final messenger = ScaffoldMessenger.of(context);
+        final navigator = Navigator.of(context);
+        try {
+          await context.read<RentalProvider>().createInvoiceAndRecord(invoice);
+        } on InvoiceException catch (e) {
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(e.error == InvoiceError.alreadyBilledThisMonth
+                  ? loc.alreadyBilledThisMonth(widget.room.name)
+                  : loc.newIndexCannotBeLess),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          return;
+        }
 
         if (context.mounted) {
-          Navigator.of(context).pop();
+          navigator.pop();
 
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             SnackBar(
               content: Text(
                 '${loc.invoiceCreatedSuccess(widget.room.name)} (${loc.totalDue}: ${_currencyFormatter.format(invoice.totalAmount)})',
@@ -124,8 +139,8 @@ class _BillingBottomSheetState extends State<BillingBottomSheet> {
         top: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SingleChildScrollView(
@@ -302,7 +317,7 @@ class _BillingBottomSheetState extends State<BillingBottomSheet> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: Colors.grey.shade300),
                 ),

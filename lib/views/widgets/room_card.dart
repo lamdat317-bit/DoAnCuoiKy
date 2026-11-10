@@ -42,6 +42,16 @@ class RoomCard extends StatelessWidget {
   }
 
   void _openBillingBottomSheet(BuildContext context) {
+    if (context.read<RentalProvider>().hasInvoiceThisMonth(room.id)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.loc.alreadyBilledThisMonth(room.name)),
+          backgroundColor: Colors.orange.shade900,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

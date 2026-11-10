@@ -92,7 +92,7 @@ class _RoomListTabState extends State<RoomListTab> {
                     : null,
                 contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                 filled: true,
-                fillColor: Colors.grey.shade100,
+                fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,

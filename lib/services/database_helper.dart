@@ -335,4 +335,40 @@ class DatabaseHelper {
       whereArgs: [reqId],
     );
   }
+
+  // ===========================================================================
+  // 5. HỖ TRỢ ĐỒNG BỘ SUPABASE CLOUD
+  // ===========================================================================
+
+  /// Lấy toàn bộ dòng dữ liệu thô của một bảng (dùng để đẩy lên Cloud)
+  static Future<List<Map<String, dynamic>>> getAllRows(String table) async {
+    final db = await database;
+    final rows = await db.query(table);
+    return rows.map((r) => Map<String, dynamic>.from(r)).toList();
+  }
+
+  /// Ghi đè dữ liệu SQLite bằng dữ liệu tải từ Cloud (trong 1 transaction).
+  /// Chỉ giữ các cột mà bảng SQLite có, và đổi bool → 0/1 cho SQLite.
+  static Future<void> replaceAllFromCloud(
+      Map<String, List<Map<String, dynamic>>> snapshot) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      for (final entry in snapshot.entries) {
+        final table = entry.key;
+        final info = await txn.rawQuery('PRAGMA table_info($table)');
+        final columns = info.map((c) => c['name'] as String).toSet();
+
+        await txn.delete(table);
+        for (final row in entry.value) {
+          final clean = <String, Object?>{};
+          row.forEach((key, value) {
+            if (!columns.contains(key)) return;
+            clean[key] = value is bool ? (value ? 1 : 0) : value;
+          });
+          await txn.insert(table, clean,
+              conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+    });
+  }
 }

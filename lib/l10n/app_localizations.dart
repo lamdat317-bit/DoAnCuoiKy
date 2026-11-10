@@ -192,6 +192,13 @@ class AppLocalizations {
       'create_invoice_btn': 'Xác Nhận & Tạo Hóa Đơn',
       'invoice_created_success': 'Đã tạo hóa đơn cho {room} thành công!',
       'new_index_cannot_be_less': 'Chỉ số mới không được nhỏ hơn chỉ số cũ',
+      'already_billed_this_month': 'Phòng {room} đã được lập hóa đơn trong tháng này. Nếu lập nhầm, hãy xóa hóa đơn cũ rồi lập lại.',
+      'billed_this_month': 'Đã chốt',
+      'cloud_synced': 'Đã đồng bộ Cloud lúc {time}',
+      'cloud_syncing': 'Đang đồng bộ Cloud...',
+      'cloud_offline': 'Chưa kết nối được Cloud — dữ liệu vẫn lưu trên máy',
+      'cloud_pending': '{count} thay đổi chờ gửi lên Cloud',
+      'sync_now': 'Đồng bộ ngay',
 
       // Checkout Dialog
       'checkout_room_title': 'Trả phòng {room}',
@@ -223,8 +230,8 @@ class AppLocalizations {
       'total_amount': 'Tổng cộng',
       'auto_vietqr': 'MÃ VIETQR CHUYỂN KHOẢN TỰ ĐỘNG',
       'cannot_load_qr': 'Không thể tải VietQR. Vui lòng kiểm tra kết nối mạng.',
-      'mark_as_paid': 'Gạch nợ',
-      'paid_recorded': 'Xác nhận thu tiền / Gạch nợ thành công!',
+      'mark_as_paid': 'Đã thanh toán',
+      'paid_recorded': 'Đã xác nhận thu tiền thành công!',
       'invoice_share_subject': 'Hóa đơn tiền nhà {room}',
       'invoice_notice': 'THÔNG BÁO TÍNH TIỀN PHÒNG {room}',
       'tenant': 'Khách thuê',
@@ -419,6 +426,13 @@ class AppLocalizations {
       'create_invoice_btn': 'Confirm & Create Invoice',
       'invoice_created_success': 'Invoice for {room} created successfully!',
       'new_index_cannot_be_less': 'New reading cannot be lower than previous reading',
+      'already_billed_this_month': 'Room {room} has already been billed this month. If it was a mistake, delete the old invoice and create it again.',
+      'billed_this_month': 'Billed',
+      'cloud_synced': 'Cloud synced at {time}',
+      'cloud_syncing': 'Syncing with Cloud...',
+      'cloud_offline': 'Cloud not reachable — data is still saved on this device',
+      'cloud_pending': '{count} changes waiting to upload',
+      'sync_now': 'Sync now',
 
       // Checkout Dialog
       'checkout_room_title': 'Check-out {room}',
@@ -646,6 +660,13 @@ class AppLocalizations {
       'create_invoice_btn': '确认并生成账单',
       'invoice_created_success': '已成功为 {room} 生成账单！',
       'new_index_cannot_be_less': '新读数不能小于上期底数',
+      'already_billed_this_month': '房间 {room} 本月已开具账单。如有错误，请先删除旧账单再重新开具。',
+      'billed_this_month': '已结算',
+      'cloud_synced': '已于 {time} 同步云端',
+      'cloud_syncing': '正在同步云端...',
+      'cloud_offline': '无法连接云端 — 数据仍保存在本机',
+      'cloud_pending': '{count} 项更改等待上传',
+      'sync_now': '立即同步',
 
       // Checkout Dialog
       'checkout_room_title': '办理退房 - {room}',
@@ -898,6 +919,16 @@ class AppLocalizations {
   String invoiceCreatedSuccess(String room) =>
       t('invoice_created_success', {'room': room});
   String get newIndexCannotBeLess => t('new_index_cannot_be_less');
+  String alreadyBilledThisMonth(String room) =>
+      t('already_billed_this_month').replaceAll('{room}', room);
+  String get billedThisMonth => t('billed_this_month');
+  String cloudSynced(String time) =>
+      t('cloud_synced').replaceAll('{time}', time);
+  String get cloudSyncing => t('cloud_syncing');
+  String get cloudOffline => t('cloud_offline');
+  String cloudPending(int count) =>
+      t('cloud_pending').replaceAll('{count}', '$count');
+  String get syncNow => t('sync_now');
 
   // Checkout
   String checkoutRoomTitle(String room) =>

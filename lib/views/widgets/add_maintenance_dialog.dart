@@ -184,7 +184,7 @@ class _AddMaintenanceDialogState extends State<AddMaintenanceDialog> {
                         _titleController.text = issue;
                       });
                     },
-                    backgroundColor: Colors.grey.shade100,
+                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                   );
                 }).toList(),
               ),

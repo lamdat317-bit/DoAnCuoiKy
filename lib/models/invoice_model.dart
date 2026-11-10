@@ -1,3 +1,5 @@
+import 'parse_utils.dart';
+
 enum InvoiceStatus {
   pending,
   paid;
@@ -119,17 +121,17 @@ class Invoice {
       roomId: map['room_id'],
       roomName: map['room_name'],
       tenantName: map['tenant_name'],
-      roomPrice: (map['room_price'] as num).toDouble(),
-      oldElec: map['old_elec'],
-      newElec: map['new_elec'],
-      elecPrice: (map['elec_price'] as num).toDouble(),
-      oldWater: map['old_water'],
-      newWater: map['new_water'],
-      waterPrice: (map['water_price'] as num).toDouble(),
-      serviceFee: (map['service_fee'] as num).toDouble(),
-      createdAt: DateTime.parse(map['created_at']),
+      roomPrice: parseDouble(map['room_price']),
+      oldElec: parseInt(map['old_elec']),
+      newElec: parseInt(map['new_elec']),
+      elecPrice: parseDouble(map['elec_price']),
+      oldWater: parseInt(map['old_water']),
+      newWater: parseInt(map['new_water']),
+      waterPrice: parseDouble(map['water_price']),
+      serviceFee: parseDouble(map['service_fee']),
+      createdAt: parseDate(map['created_at']) ?? DateTime.now(),
       status: map['status'] == 'paid' ? InvoiceStatus.paid : InvoiceStatus.pending,
-      paidAt: map['paid_at'] != null ? DateTime.parse(map['paid_at']) : null,
+      paidAt: parseDate(map['paid_at']),
     );
   }
 }

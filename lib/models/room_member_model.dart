@@ -1,3 +1,5 @@
+import 'parse_utils.dart';
+
 /// ============================================================================
 /// MODEL: Thành Viên & Số CCCD/CMND Của Phòng Trọ (RoomMember)
 /// ============================================================================
@@ -69,12 +71,10 @@ class RoomMember {
       name: map['name'],
       idCard: map['id_card'],
       phone: map['phone'],
-      dateOfBirth: map['date_of_birth'] != null
-          ? DateTime.parse(map['date_of_birth'])
-          : null,
+      dateOfBirth: parseDate(map['date_of_birth']),
       hometown: map['hometown'],
-      isRepresentative: map['is_representative'] == 1 || map['is_representative'] == true,
-      createdAt: DateTime.parse(map['created_at']),
+      isRepresentative: parseBool(map['is_representative']),
+      createdAt: parseDate(map['created_at']),
     );
   }
 }

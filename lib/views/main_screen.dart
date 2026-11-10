@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
+import '../providers/rental_provider.dart';
+import '../providers/settings_provider.dart';
 import 'dashboard_tab.dart';
 import 'invoice_list_tab.dart';
 import 'maintenance_screen.dart';
@@ -73,7 +75,7 @@ class _MainScreenState extends State<MainScreen> {
               title: Text(loc.fullName, style: const TextStyle(fontSize: 12, color: Colors.grey)),
               subtitle: Text(
                 auth.userName,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
             ListTile(
@@ -82,7 +84,7 @@ class _MainScreenState extends State<MainScreen> {
               title: Text(loc.loginEmail, style: const TextStyle(fontSize: 12, color: Colors.grey)),
               subtitle: Text(
                 auth.userEmail ?? 'Chưa cập nhật',
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87),
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
               ),
             ),
             ListTile(
@@ -91,7 +93,7 @@ class _MainScreenState extends State<MainScreen> {
               title: Text(loc.systemRole, style: const TextStyle(fontSize: 12, color: Colors.grey)),
               subtitle: Text(
                 auth.userRole == 'Chủ trọ' ? loc.roleLandlord : auth.userRole,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87),
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
               ),
             ),
           ],
@@ -275,18 +277,7 @@ class _MainScreenState extends State<MainScreen> {
           const LanguagePickerActionItem(),
           const SizedBox(width: 4),
 
-          IconButton(
-            icon: const Icon(Icons.notifications_none),
-            tooltip: loc.notifications,
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(loc.noNotifications),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            },
-          ),
+          const _CloudSyncButton(),
           PopupMenuButton<String>(
             tooltip: loc.accountInfo,
             icon: const CircleAvatar(
@@ -313,7 +304,6 @@ class _MainScreenState extends State<MainScreen> {
                       auth.userName,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
                       ),
                     ),
                     Text(
@@ -392,6 +382,76 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Nút trạng thái đồng bộ Supabase Cloud trên AppBar.
+/// - Xanh lá: đã đồng bộ | Cam: còn thay đổi chờ gửi | Xám: chưa kết nối.
+/// - Bấm để đồng bộ ngay.
+class _CloudSyncButton extends StatelessWidget {
+  const _CloudSyncButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<RentalProvider>();
+    final loc = context.loc;
+
+    if (provider.isSyncing) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Tooltip(
+          message: loc.cloudSyncing,
+          child: const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+
+    final pending = provider.pendingCloudOps;
+    final synced = provider.lastSyncedAt;
+    final IconData icon;
+    final Color color;
+    final String status;
+    if (!provider.isCloudEnabled || synced == null) {
+      icon = Icons.cloud_off;
+      color = Colors.grey;
+      status = loc.cloudOffline;
+    } else if (pending > 0) {
+      icon = Icons.cloud_upload;
+      color = Colors.orange;
+      status = loc.cloudPending(pending);
+    } else {
+      icon = Icons.cloud_done;
+      color = Colors.green;
+      final t = TimeOfDay.fromDateTime(synced).format(context);
+      status = loc.cloudSynced(t);
+    }
+
+    return IconButton(
+      icon: Icon(icon, color: color),
+      tooltip: '$status\n${loc.syncNow}',
+      onPressed: () async {
+        final messenger = ScaffoldMessenger.of(context);
+        final settingsSync = context.read<SettingsProvider>().syncWithCloud();
+        final ok = await provider.syncWithCloud();
+        await settingsSync;
+        if (!context.mounted) return;
+        final after = provider.lastSyncedAt;
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(ok && after != null
+                ? loc.cloudSynced(TimeOfDay.fromDateTime(after).format(context))
+                : loc.cloudOffline),
+            backgroundColor: ok ? Colors.green : Colors.grey.shade800,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      },
     );
   }
 }

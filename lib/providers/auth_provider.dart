@@ -1,6 +1,22 @@
-import 'package:flutter/foundation.dart';
+import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// ============================================================================
+/// PROVIDER: Xác Thực Tài Khoản Chủ Trọ (AuthProvider)
+/// ============================================================================
+/// - Tài khoản (email, mật khẩu, họ tên) lưu bằng SharedPreferences nên
+///   không bị mất khi tắt app.
+/// - Chỉ tài khoản ĐÃ ĐĂNG KÝ mới đăng nhập được.
+/// - Ghi nhớ phiên đăng nhập: mở lại app không cần đăng nhập lại.
+/// ============================================================================
 class AuthProvider extends ChangeNotifier {
+  static const String _keyUsers = 'auth_users';
+  static const String _keySession = 'auth_session_email';
+
+  final SharedPreferences _prefs;
+
   bool _isLoggedIn = false;
   String? _userEmail;
   String _userName = 'Chủ trọ Admin';
@@ -11,18 +27,48 @@ class AuthProvider extends ChangeNotifier {
   String get userName => _userName;
   String get userRole => _userRole;
 
-  // Mock users database
-  final Map<String, String> _users = {
-    'admin@gmail.com': '123456',
-    'chutro@gmail.com': '123456',
+  /// Tài khoản demo có sẵn
+  static const Map<String, Map<String, String>> _defaultUsers = {
+    'admin@gmail.com': {'password': '123456', 'name': 'Chủ trọ Admin'},
+    'chutro@gmail.com': {'password': '123456', 'name': 'Nguyễn Văn Quyền'},
   };
 
-  final Map<String, String> _userNames = {
-    'admin@gmail.com': 'Chủ trọ Admin',
-    'chutro@gmail.com': 'Nguyễn Văn Quyền',
-  };
+  /// email → {password, name}
+  late final Map<String, Map<String, String>> _users;
 
-  /// Log in with email and password. Returns null on success, or an error message on failure.
+  AuthProvider(this._prefs) {
+    _users = _loadUsers();
+
+    // Khôi phục phiên đăng nhập trước đó
+    final sessionEmail = _prefs.getString(_keySession);
+    if (sessionEmail != null && _users.containsKey(sessionEmail)) {
+      _isLoggedIn = true;
+      _userEmail = sessionEmail;
+      _userName = _users[sessionEmail]!['name'] ?? _userName;
+    }
+  }
+
+  Map<String, Map<String, String>> _loadUsers() {
+    final users = <String, Map<String, String>>{
+      for (final e in _defaultUsers.entries) e.key: Map.of(e.value),
+    };
+    final raw = _prefs.getString(_keyUsers);
+    if (raw != null) {
+      try {
+        final decoded = jsonDecode(raw) as Map<String, dynamic>;
+        decoded.forEach((email, info) {
+          users[email] = Map<String, String>.from(info as Map);
+        });
+      } catch (e) {
+        debugPrint('Lỗi đọc danh sách tài khoản: $e');
+      }
+    }
+    return users;
+  }
+
+  Future<void> _saveUsers() => _prefs.setString(_keyUsers, jsonEncode(_users));
+
+  /// Đăng nhập. Trả về null nếu thành công, hoặc thông báo lỗi.
   Future<String?> login(String email, String password) async {
     await Future.delayed(const Duration(milliseconds: 600));
 
@@ -35,38 +81,25 @@ class AuthProvider extends ChangeNotifier {
     if (cleanPassword.isEmpty) {
       return 'Vui lòng nhập mật khẩu';
     }
-    if (cleanPassword.length < 6) {
-      return 'Mật khẩu phải chứa ít nhất 6 ký tự';
-    }
 
-    // If existing user, check password match
-    if (_users.containsKey(cleanEmail)) {
-      if (_users[cleanEmail] != cleanPassword) {
-        return 'Mật khẩu không chính xác';
-      }
+    final user = _users[cleanEmail];
+    if (user == null) {
+      return 'Tài khoản không tồn tại. Vui lòng đăng ký trước.';
+    }
+    if (user['password'] != cleanPassword) {
+      return 'Mật khẩu không chính xác';
     }
 
     _isLoggedIn = true;
     _userEmail = cleanEmail;
-
-    if (_userNames.containsKey(cleanEmail)) {
-      _userName = _userNames[cleanEmail]!;
-    } else {
-      String namePart = cleanEmail.split('@').first;
-      if (namePart.isNotEmpty) {
-        _userName = namePart[0].toUpperCase() + namePart.substring(1);
-      } else {
-        _userName = 'Chủ trọ';
-      }
-      _userNames[cleanEmail] = _userName;
-      _users[cleanEmail] = cleanPassword;
-    }
+    _userName = user['name'] ?? 'Chủ trọ';
+    await _prefs.setString(_keySession, cleanEmail);
 
     notifyListeners();
     return null;
   }
 
-  /// Register a new user. Returns null on success, or an error message on failure.
+  /// Đăng ký tài khoản mới. Trả về null nếu thành công, hoặc thông báo lỗi.
   Future<String?> register(String name, String email, String password) async {
     await Future.delayed(const Duration(milliseconds: 600));
 
@@ -77,50 +110,53 @@ class AuthProvider extends ChangeNotifier {
     if (cleanName.isEmpty) {
       return 'Vui lòng nhập họ và tên';
     }
-    if (cleanEmail.isEmpty || !cleanEmail.contains('@')) {
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!emailRegex.hasMatch(cleanEmail)) {
       return 'Vui lòng nhập địa chỉ Email hợp lệ';
     }
     if (cleanPassword.length < 6) {
       return 'Mật khẩu phải từ 6 ký tự trở lên';
     }
-
     if (_users.containsKey(cleanEmail)) {
       return 'Email này đã được đăng ký tài khoản';
     }
 
-    _users[cleanEmail] = cleanPassword;
-    _userNames[cleanEmail] = cleanName;
+    _users[cleanEmail] = {'password': cleanPassword, 'name': cleanName};
+    await _saveUsers();
 
     _isLoggedIn = true;
     _userEmail = cleanEmail;
     _userName = cleanName;
+    await _prefs.setString(_keySession, cleanEmail);
 
     notifyListeners();
     return null;
   }
 
-  /// Change password for currently logged-in user
+  /// Đổi mật khẩu cho tài khoản đang đăng nhập
   Future<String?> changePassword(String oldPassword, String newPassword) async {
     await Future.delayed(const Duration(milliseconds: 500));
 
-    if (_userEmail == null) return 'Chưa đăng nhập';
+    final email = _userEmail;
+    if (email == null || !_users.containsKey(email)) return 'Chưa đăng nhập';
 
-    if (_users[_userEmail] != oldPassword) {
+    if (_users[email]!['password'] != oldPassword.trim()) {
       return 'Mật khẩu hiện tại không đúng';
     }
-
-    if (newPassword.length < 6) {
+    if (newPassword.trim().length < 6) {
       return 'Mật khẩu mới phải từ 6 ký tự trở lên';
     }
 
-    _users[_userEmail!] = newPassword;
+    _users[email]!['password'] = newPassword.trim();
+    await _saveUsers();
     notifyListeners();
     return null;
   }
 
-  void logout() {
+  Future<void> logout() async {
     _isLoggedIn = false;
     _userEmail = null;
+    await _prefs.remove(_keySession);
     notifyListeners();
   }
 }

@@ -64,7 +64,7 @@ void showLanguageSelectorDialog(BuildContext context) {
                   lang.name,
                   style: TextStyle(
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: isSelected ? const Color(0xFF3F51B5) : Colors.black87,
+                    color: isSelected ? const Color(0xFF3F51B5) : null,
                   ),
                 ),
                 trailing: isSelected
@@ -106,7 +106,7 @@ class LanguagePickerActionItem extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.grey.shade300),
         ),

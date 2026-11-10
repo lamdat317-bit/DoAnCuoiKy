@@ -70,11 +70,10 @@ class _LoginScreenState extends State<LoginScreen> {
         _loginPasswordController.text,
       );
 
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
-
-      if (!mounted) return;
 
       if (errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -122,11 +121,10 @@ class _LoginScreenState extends State<LoginScreen> {
         _registerPasswordController.text,
       );
 
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
-
-      if (!mounted) return;
 
       if (errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,4 +1,4 @@
-/// ============================================================================
+
 /// FILE: views/dashboard_tab.dart
 /// GIAO DIỆN: TAB 1 - BẢNG ĐIỀU KHIỂN TỔNG QUAN (DASHBOARD TAB)
 /// CHỨC NĂNG CHÍNH:
@@ -9,12 +9,12 @@
 /// - Biểu đồ thống kê doanh thu 6 tháng gần nhất (`fl_chart`).
 /// - Danh sách các phòng cần chốt tiền điện nước trong tháng.
 /// - Lịch sử hóa đơn vừa lập gần đây.
-/// ============================================================================
 library;
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../models/invoice_model.dart';
 import '../models/room_model.dart';
 import '../providers/auth_provider.dart';
@@ -29,6 +29,16 @@ class DashboardTab extends StatelessWidget {
 
   /// Mở BottomSheet chốt tiền điện nước cho một phòng
   void _openBillingBottomSheet(BuildContext context, Room room) {
+    if (context.read<RentalProvider>().hasInvoiceThisMonth(room.id)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.loc.alreadyBilledThisMonth(room.name)),
+          backgroundColor: Colors.orange.shade900,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -66,8 +76,8 @@ class DashboardTab extends StatelessWidget {
         minChildSize: 0.4,
         maxChildSize: 0.9,
         builder: (_, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
@@ -280,7 +290,7 @@ class DashboardTab extends StatelessWidget {
   }) {
     return Expanded(
       child: Material(
-        color: Colors.white,
+        type: MaterialType.card,
         borderRadius: BorderRadius.circular(14),
         elevation: 1,
         shadowColor: const Color(0x14000000),
@@ -350,7 +360,7 @@ class DashboardTab extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(12),
               boxShadow: const [
                 BoxShadow(
@@ -377,7 +387,6 @@ class DashboardTab extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -605,7 +614,7 @@ class DashboardTab extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text(
@@ -641,16 +650,25 @@ class DashboardTab extends StatelessWidget {
                       'Khách: ${room.tenantName ?? 'Chưa rõ'}\nĐiện cũ: ${room.oldElectricity} kWh | Nước cũ: ${room.oldWater} m³',
                     ),
                     isThreeLine: true,
-                    trailing: ElevatedButton(
-                      onPressed: () => _openBillingBottomSheet(context, room),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                      ),
-                      child: const Text('Tính tiền', style: TextStyle(fontSize: 13)),
-                    ),
+                    trailing: provider.hasInvoiceThisMonth(room.id)
+                        ? Chip(
+                            avatar: const Icon(Icons.check_circle,
+                                color: Colors.green, size: 18),
+                            label: Text(context.loc.billedThisMonth,
+                                style: const TextStyle(fontSize: 12)),
+                          )
+                        : ElevatedButton(
+                            onPressed: () =>
+                                _openBillingBottomSheet(context, room),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                            child: const Text('Tính tiền',
+                                style: TextStyle(fontSize: 13)),
+                          ),
                   ),
                 );
               },

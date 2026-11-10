@@ -14,6 +14,9 @@ class SettingsService {
 
   SettingsService(this._prefs);
 
+  /// Dùng chung SharedPreferences cho các provider khác (vd: AuthProvider)
+  SharedPreferences get prefs => _prefs;
+
   static Future<SettingsService> init() async {
     final prefs = await SharedPreferences.getInstance();
     return SettingsService(prefs);
@@ -23,8 +26,8 @@ class SettingsService {
   double get waterPrice => _prefs.getDouble(_keyWaterPrice) ?? 20000.0;
   double get serviceFee => _prefs.getDouble(_keyServiceFee) ?? 150000.0;
 
-  String get bankCode => _prefs.getString(_keyBankCode) ?? 'MB';
-  String get accountNo => _prefs.getString(_keyAccountNo) ?? '0901234567';
+  String get bankCode => _prefs.getString(_keyBankCode) ?? 'TCB';
+  String get accountNo => _prefs.getString(_keyAccountNo) ?? '19037202589016';
   String get accountHolder =>
       _prefs.getString(_keyAccountHolder) ?? 'CHUYEN KHOAN TRO';
   String get languageCode => _prefs.getString(_keyLanguageCode) ?? 'vi';
@@ -36,6 +39,56 @@ class SettingsService {
 
   Future<void> setDarkMode(bool isDark) async {
     await _prefs.setBool(_keyIsDarkMode, isDark);
+  }
+
+  /// Mã dòng cài đặt dùng chung trên Supabase (bảng `cai_dat`)
+  static const String cloudId = 'mac_dinh';
+
+  /// Cài đặt dùng chung (giá điện nước, ngân hàng) dạng dòng dữ liệu để
+  /// gửi lên Supabase. Ngôn ngữ & giao diện tối là riêng từng máy → không gửi.
+  Map<String, dynamic> toSyncRow() => {
+        'id': cloudId,
+        'elec_price': elecPrice,
+        'water_price': waterPrice,
+        'service_fee': serviceFee,
+        'bank_code': bankCode,
+        'account_no': accountNo,
+        'account_holder': accountHolder,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+  /// Ghi cài đặt tải từ Supabase vào máy. Trả về true nếu có thay đổi.
+  Future<bool> applySyncRow(Map<String, dynamic> row) async {
+    double? num_(Object? v) => v is num ? v.toDouble() : double.tryParse('$v');
+    String? str(Object? v) {
+      final s = v?.toString().trim();
+      return (s == null || s.isEmpty) ? null : s;
+    }
+
+    final elec = num_(row['elec_price']) ?? elecPrice;
+    final water = num_(row['water_price']) ?? waterPrice;
+    final service = num_(row['service_fee']) ?? serviceFee;
+    final bank = str(row['bank_code']) ?? bankCode;
+    final account = str(row['account_no']) ?? accountNo;
+    final holder = str(row['account_holder']) ?? accountHolder;
+
+    final changed = elec != elecPrice ||
+        water != waterPrice ||
+        service != serviceFee ||
+        bank.toUpperCase() != bankCode ||
+        account != accountNo ||
+        holder.toUpperCase() != accountHolder;
+    if (!changed) return false;
+
+    await saveSettings(
+      elecPrice: elec,
+      waterPrice: water,
+      serviceFee: service,
+      bankCode: bank,
+      accountNo: account,
+      accountHolder: holder,
+    );
+    return true;
   }
 
   Future<void> saveSettings({

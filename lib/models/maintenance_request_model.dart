@@ -1,3 +1,5 @@
+import 'parse_utils.dart';
+
 /// ============================================================================
 /// ENUM: Trạng Thái Xử Lý Sự Cố Bảo Trì
 /// ============================================================================
@@ -95,15 +97,13 @@ class MaintenanceRequest {
       roomName: map['room_name'],
       title: map['title'],
       description: map['description'],
-      repairCost: (map['repair_cost'] as num).toDouble(),
+      repairCost: parseDouble(map['repair_cost']),
       status: MaintenanceStatus.values.firstWhere(
         (s) => s.name == map['status'],
         orElse: () => MaintenanceStatus.pending,
       ),
-      createdAt: DateTime.parse(map['created_at']),
-      completedAt: map['completed_at'] != null
-          ? DateTime.parse(map['completed_at'])
-          : null,
+      createdAt: parseDate(map['created_at']),
+      completedAt: parseDate(map['completed_at']),
     );
   }
 }

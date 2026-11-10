@@ -1,3 +1,5 @@
+import 'parse_utils.dart';
+
 enum RoomStatus {
   available,
   occupied,
@@ -106,29 +108,21 @@ class Room {
     return Room(
       id: map['id'],
       name: map['name'],
-      basePrice: (map['base_price'] as num).toDouble(),
+      basePrice: parseDouble(map['base_price']),
       status: RoomStatus.values.firstWhere(
         (s) => s.name == map['status'],
         orElse: () => RoomStatus.available,
       ),
       tenantName: map['tenant_name'],
       phone: map['phone'],
-      contractEnd: map['contract_end'] != null
-          ? DateTime.parse(map['contract_end'])
-          : null,
-      oldElectricity: map['old_electricity'],
-      oldWater: map['old_water'],
+      contractEnd: parseDate(map['contract_end']),
+      oldElectricity: parseInt(map['old_electricity']),
+      oldWater: parseInt(map['old_water']),
       imageUrl: map['image_url'],
-      occupantCount: map['occupant_count'] ?? 1,
-      checkInDate: map['check_in_date'] != null
-          ? DateTime.parse(map['check_in_date'])
-          : null,
-      checkOutDate: map['check_out_date'] != null
-          ? DateTime.parse(map['check_out_date'])
-          : null,
-      depositAmount: map['deposit_amount'] != null
-          ? (map['deposit_amount'] as num).toDouble()
-          : 0.0,
+      occupantCount: parseInt(map['occupant_count'], 1),
+      checkInDate: parseDate(map['check_in_date']),
+      checkOutDate: parseDate(map['check_out_date']),
+      depositAmount: parseDouble(map['deposit_amount']),
     );
   }
 }

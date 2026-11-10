@@ -5,6 +5,7 @@ import '../models/maintenance_request_model.dart';
 import '../models/room_member_model.dart';
 import '../models/room_model.dart';
 import '../services/database_helper.dart';
+import '../services/supabase_service.dart';
 
 /// ============================================================================
 /// PROVIDER: Quản Lý Trạng Thái Và Nghiệp Vụ Cho Thuê Trọ (RentalProvider)
@@ -13,9 +14,11 @@ import '../services/database_helper.dart';
 /// Phân chia 5 nhóm chức năng lớn:
 /// 1. Tải & Thống kê Dữ liệu Tổng quan (Dashboard Analytics & Revenue Chart)
 /// 2. Quản lý Phòng trọ (CRUD Room & Trạng thái Phòng)
-/// 3. Quản lý Hóa đơn & Gạch nợ (Invoices & Debt Payment)
+/// 3. Quản lý Hóa đơn & Thu tiền (Invoices & Payment)
 /// 4. Quản lý Cư dân & CCCD/CMND (Room Members & CCCD Registry)
 /// 5. Quản lý Sự cố & Bảo trì Thiết bị (Maintenance Requests)
+///
+/// Dữ liệu: ghi SQLite trước (offline-first) rồi đồng bộ lên Supabase Cloud.
 /// ============================================================================
 class RentalProvider extends ChangeNotifier {
   List<Room> _rooms = [];
@@ -23,8 +26,24 @@ class RentalProvider extends ChangeNotifier {
   List<MaintenanceRequest> _maintenanceRequests = [];
   final Map<String, List<RoomMember>> _roomMembersMap = {};
   bool _isLoading = true;
+  bool _isSyncing = false;
+  DateTime? _lastSyncedAt;
+  int _localWriteVersion = 0;
 
   bool get isLoading => _isLoading;
+
+  /// Đang đồng bộ với Supabase Cloud
+  bool get isSyncing => _isSyncing;
+
+  /// Thời điểm đồng bộ Cloud thành công gần nhất (null = chưa đồng bộ được)
+  DateTime? get lastSyncedAt => _lastSyncedAt;
+
+  /// Số thao tác chưa gửi được lên Cloud (do mất mạng...)
+  int get pendingCloudOps => SupabaseService.pendingCount;
+
+  /// Đã cấu hình & khởi tạo được Supabase
+  bool get isCloudEnabled => SupabaseService.isInitialized;
+
   UnmodifiableListView<Room> get rooms => UnmodifiableListView(_rooms);
   UnmodifiableListView<Invoice> get invoices => UnmodifiableListView(_invoices);
   UnmodifiableListView<MaintenanceRequest> get maintenanceRequests =>
@@ -35,22 +54,78 @@ class RentalProvider extends ChangeNotifier {
   }
 
   // ===========================================================================
-  // 1. TẢI DỮ LIỆU & BÁO CÁO THỐNG KÊ (DASHBOARD ANALYTICS & REVENUE CHART)
+  // 1. TẢI DỮ LIỆU, ĐỒNG BỘ CLOUD & BÁO CÁO THỐNG KÊ
   // ===========================================================================
 
-  /// Tải toàn bộ dữ liệu phòng trọ, hóa đơn & sự cố bảo trì từ SQLite
+  /// Tải dữ liệu từ SQLite (hiển thị ngay) rồi đồng bộ Supabase Cloud ở nền
   Future<void> loadData() async {
     _isLoading = true;
     notifyListeners();
 
+    await _loadFromLocal();
+    _isLoading = false;
+    notifyListeners();
+
+    await syncWithCloud();
+  }
+
+  Future<void> _loadFromLocal() async {
     try {
       _rooms = await DatabaseHelper.getRooms();
       _invoices = await DatabaseHelper.getInvoices();
+      _invoices.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       _maintenanceRequests = await DatabaseHelper.getMaintenanceRequests();
+      _roomMembersMap.clear();
     } catch (e) {
       debugPrint('Lỗi tải dữ liệu SQLite: $e');
+    }
+  }
+
+  /// Đồng bộ 2 chiều với Supabase:
+  /// 1. Gửi các thao tác còn tồn đọng (lúc offline) lên Cloud.
+  /// 2. Lần đầu trên máy này: đẩy dữ liệu SQLite chưa có trên Cloud lên.
+  /// 3. Tải dữ liệu Cloud về ghi đè SQLite (Cloud là bản chuẩn).
+  /// Trả về true nếu đồng bộ thành công.
+  Future<bool> syncWithCloud() async {
+    if (!SupabaseService.isInitialized || _isSyncing) return false;
+    _isSyncing = true;
+    notifyListeners();
+
+    try {
+      final writeVersionAtStart = _localWriteVersion;
+      if (!await SupabaseService.flushQueue()) return false;
+
+      final cloud = await SupabaseService.fetchAll();
+      if (cloud == null) return false;
+
+      if (!SupabaseService.initialSyncDone) {
+        for (final table in SupabaseService.syncedTables) {
+          final cloudIds =
+              cloud[table]!.map((r) => r['id'].toString()).toSet();
+          for (final row in await DatabaseHelper.getAllRows(table)) {
+            if (!cloudIds.contains(row['id'].toString())) {
+              SupabaseService.upsert(table, row);
+              cloud[table]!.add(row);
+            }
+          }
+        }
+        if (!await SupabaseService.flushQueue()) return false;
+        await SupabaseService.markInitialSyncDone();
+      }
+
+      // Người dùng vừa sửa dữ liệu trong lúc đang tải → bản Cloud vừa tải đã
+      // cũ, không ghi đè (thay đổi mới đã nằm trong hàng đợi gửi lên Cloud).
+      if (_localWriteVersion != writeVersionAtStart) return false;
+
+      await DatabaseHelper.replaceAllFromCloud(cloud);
+      await _loadFromLocal();
+      _lastSyncedAt = DateTime.now();
+      return true;
+    } catch (e) {
+      debugPrint('Lỗi đồng bộ Supabase: $e');
+      return false;
     } finally {
-      _isLoading = false;
+      _isSyncing = false;
       notifyListeners();
     }
   }
@@ -96,8 +171,8 @@ class RentalProvider extends ChangeNotifier {
       .length;
 
   /// Tổng chi phí sửa chữa bảo trì
-  double get totalMaintenanceCost => _maintenanceRequests.fold(
-      0.0, (sum, req) => sum + req.repairCost);
+  double get totalMaintenanceCost =>
+      _maintenanceRequests.fold(0.0, (sum, req) => sum + req.repairCost);
 
   /// Lấy thống kê doanh thu 6 tháng gần nhất cho biểu đồ fl_chart
   Map<String, double> getMonthlyRevenueStats() {
@@ -108,10 +183,10 @@ class RentalProvider extends ChangeNotifier {
       final monthDate = DateTime(now.year, now.month - i, 1);
       final label = 'T.${monthDate.month}';
 
-      // Doanh thu thực tế = tổng tiền các hóa đơn lập trong tháng
-      // (Không lấy "doanh thu dự kiến" bù vào để tránh hiển thị sai số liệu)
+      // Doanh thu thực tế = tổng tiền các hóa đơn ĐÃ THANH TOÁN lập trong tháng
       stats[label] = _invoices
           .where((inv) =>
+              inv.isPaid &&
               inv.createdAt.year == monthDate.year &&
               inv.createdAt.month == monthDate.month)
           .fold(0.0, (sum, inv) => sum + inv.totalAmount);
@@ -129,6 +204,7 @@ class RentalProvider extends ChangeNotifier {
     _rooms.add(room);
     notifyListeners();
     await DatabaseHelper.insertRoom(room);
+    _cloudUpsert('rooms', room.toMap());
   }
 
   /// Cập nhật thông tin phòng trọ (Giá thuê, Ảnh, Trạng thái, v.v.)
@@ -138,6 +214,7 @@ class RentalProvider extends ChangeNotifier {
       _rooms[index] = updatedRoom;
       notifyListeners();
       await DatabaseHelper.updateRoom(updatedRoom);
+      _cloudUpsert('rooms', updatedRoom.toMap());
     }
   }
 
@@ -149,18 +226,31 @@ class RentalProvider extends ChangeNotifier {
     _roomMembersMap.remove(roomId);
     notifyListeners();
     await DatabaseHelper.deleteRoom(roomId);
+    for (final table in ['room_members', 'invoices', 'maintenance_requests']) {
+      _cloudDelete(table, 'room_id', roomId);
+    }
+    _cloudDelete('rooms', 'id', roomId);
   }
 
   /// Đổi trạng thái phòng (Trống / Đã thuê / Bảo trì)
+  /// Phòng không còn ai thuê → xóa luôn danh sách cư dân/CCCD của phòng.
   Future<void> updateRoomStatus(String roomId, RoomStatus status) async {
     final index = _rooms.indexWhere((r) => r.id == roomId);
     if (index != -1) {
+      final releaseRoom = status != RoomStatus.occupied;
       _rooms[index] = _rooms[index].copyWith(
         status: status,
-        clearTenant: status != RoomStatus.occupied,
+        clearTenant: releaseRoom,
+        occupantCount: releaseRoom ? 1 : null,
       );
+      if (releaseRoom) {
+        _roomMembersMap.remove(roomId);
+        await DatabaseHelper.deleteMembersForRoom(roomId);
+        _cloudDelete('room_members', 'room_id', roomId);
+      }
       notifyListeners();
       await DatabaseHelper.updateRoom(_rooms[index]);
+      _cloudUpsert('rooms', _rooms[index].toMap());
     }
   }
 
@@ -168,12 +258,26 @@ class RentalProvider extends ChangeNotifier {
   // 3. QUẢN LÝ HÓA ĐƠN & QUYẾT TOÁN (INVOICES & CHECKOUT)
   // ===========================================================================
 
-  /// Tạo hóa đơn tính tiền mới & cập nhật chỉ số điện/nước mới cho phòng
+  /// Phòng đã được lập hóa đơn trong tháng hiện tại chưa
+  bool hasInvoiceThisMonth(String roomId) {
+    final now = DateTime.now();
+    return _invoices.any((inv) =>
+        inv.roomId == roomId &&
+        inv.createdAt.year == now.year &&
+        inv.createdAt.month == now.month);
+  }
+
+  /// Tạo hóa đơn tính tiền mới & cập nhật chỉ số điện/nước mới cho phòng.
+  /// Ném [InvoiceException] nếu dữ liệu không hợp lệ.
   Future<void> createInvoiceAndRecord(Invoice invoice) async {
     // Chặn chỉ số mới nhỏ hơn chỉ số cũ (tránh lượng dùng bị tính = 0 âm thầm)
     if (invoice.newElec < invoice.oldElec ||
         invoice.newWater < invoice.oldWater) {
-      throw ArgumentError('Chỉ số mới không được nhỏ hơn chỉ số cũ');
+      throw const InvoiceException(InvoiceError.invalidMeter);
+    }
+    // Mỗi phòng chỉ lập 1 hóa đơn / tháng (lập nhầm thì xóa hóa đơn rồi lập lại)
+    if (hasInvoiceThisMonth(invoice.roomId)) {
+      throw const InvoiceException(InvoiceError.alreadyBilledThisMonth);
     }
     _invoices.insert(0, invoice);
 
@@ -184,13 +288,15 @@ class RentalProvider extends ChangeNotifier {
         oldWater: invoice.newWater,
       );
       await DatabaseHelper.updateRoom(_rooms[index]);
+      _cloudUpsert('rooms', _rooms[index].toMap());
     }
 
     notifyListeners();
     await DatabaseHelper.insertInvoice(invoice);
+    _cloudUpsert('invoices', invoice.toMap());
   }
 
-  /// Xác nhận thu tiền / Gạch nợ cho hóa đơn (Chuyển sang Đã thanh toán)
+  /// Xác nhận thu tiền cho hóa đơn (Chuyển sang Đã thanh toán)
   Future<void> markInvoiceAsPaid(String invoiceId) async {
     final index = _invoices.indexWhere((inv) => inv.id == invoiceId);
     if (index != -1) {
@@ -200,15 +306,40 @@ class RentalProvider extends ChangeNotifier {
         paidAt: now,
       );
       notifyListeners();
-      await DatabaseHelper.updateInvoiceStatus(invoiceId, InvoiceStatus.paid, now);
+      await DatabaseHelper.updateInvoiceStatus(
+          invoiceId, InvoiceStatus.paid, now);
+      _cloudUpsert('invoices', _invoices[index].toMap());
     }
   }
 
-  /// Xóa hóa đơn khỏi hệ thống & CSDL SQLite
+  /// Xóa hóa đơn khỏi hệ thống.
+  /// Nếu đó là hóa đơn mới nhất của phòng → trả chỉ số điện/nước của phòng về
+  /// chỉ số cũ của hóa đơn, để lập lại hóa đơn không bị tính thiếu.
   Future<void> deleteInvoice(String invoiceId) async {
-    _invoices.removeWhere((inv) => inv.id == invoiceId);
+    final invIndex = _invoices.indexWhere((inv) => inv.id == invoiceId);
+    if (invIndex == -1) return;
+    final invoice = _invoices.removeAt(invIndex);
+
+    final isLatestOfRoom = !_invoices.any((inv) =>
+        inv.roomId == invoice.roomId &&
+        inv.createdAt.isAfter(invoice.createdAt));
+    final roomIndex = _rooms.indexWhere((r) => r.id == invoice.roomId);
+    if (isLatestOfRoom && roomIndex != -1) {
+      final room = _rooms[roomIndex];
+      if (room.oldElectricity == invoice.newElec &&
+          room.oldWater == invoice.newWater) {
+        _rooms[roomIndex] = room.copyWith(
+          oldElectricity: invoice.oldElec,
+          oldWater: invoice.oldWater,
+        );
+        await DatabaseHelper.updateRoom(_rooms[roomIndex]);
+        _cloudUpsert('rooms', _rooms[roomIndex].toMap());
+      }
+    }
+
     notifyListeners();
     await DatabaseHelper.deleteInvoice(invoiceId);
+    _cloudDelete('invoices', 'id', invoiceId);
   }
 
   /// Trả phòng & Thanh lý hợp đồng (Khấu trừ cọc và đưa phòng về trạng thái Trống)
@@ -221,20 +352,18 @@ class RentalProvider extends ChangeNotifier {
       }
       _rooms[index] = _rooms[index].copyWith(
         status: RoomStatus.available,
-        tenantName: null,
-        phone: null,
         oldElectricity: lastElec,
         oldWater: lastWater,
         occupantCount: 1,
-        checkInDate: null,
-        checkOutDate: null,
         depositAmount: 0.0,
         clearTenant: true,
       );
       _roomMembersMap.remove(roomId);
       await DatabaseHelper.deleteMembersForRoom(roomId);
+      _cloudDelete('room_members', 'room_id', roomId);
       notifyListeners();
       await DatabaseHelper.updateRoom(_rooms[index]);
+      _cloudUpsert('rooms', _rooms[index].toMap());
     }
   }
 
@@ -258,18 +387,21 @@ class RentalProvider extends ChangeNotifier {
   /// Thêm một thành viên CCCD mới vào phòng
   Future<void> addRoomMember(RoomMember member) async {
     await DatabaseHelper.insertRoomMember(member);
+    _cloudUpsert('room_members', member.toMap());
     await _refreshRoomMembersAndSync(member.roomId);
   }
 
   /// Cập nhật thông tin CCCD của thành viên
   Future<void> updateRoomMember(RoomMember member) async {
     await DatabaseHelper.updateRoomMember(member);
+    _cloudUpsert('room_members', member.toMap());
     await _refreshRoomMembersAndSync(member.roomId);
   }
 
   /// Xóa thành viên khỏi phòng
   Future<void> deleteRoomMember(String memberId, String roomId) async {
     await DatabaseHelper.deleteRoomMember(memberId);
+    _cloudDelete('room_members', 'id', memberId);
     await _refreshRoomMembersAndSync(roomId);
   }
 
@@ -281,7 +413,8 @@ class RentalProvider extends ChangeNotifier {
     final index = _rooms.indexWhere((r) => r.id == roomId);
     if (index != -1) {
       final room = _rooms[index];
-      final occupantCount = members.isNotEmpty ? members.length : room.occupantCount;
+      final occupantCount =
+          members.isNotEmpty ? members.length : room.occupantCount;
 
       RoomMember? repMember;
       if (members.isNotEmpty) {
@@ -300,6 +433,7 @@ class RentalProvider extends ChangeNotifier {
         phone: updatedPhone,
       );
       await DatabaseHelper.updateRoom(_rooms[index]);
+      _cloudUpsert('rooms', _rooms[index].toMap());
     }
 
     notifyListeners();
@@ -314,6 +448,7 @@ class RentalProvider extends ChangeNotifier {
     _maintenanceRequests.insert(0, req);
     notifyListeners();
     await DatabaseHelper.insertMaintenanceRequest(req);
+    _cloudUpsert('maintenance_requests', req.toMap());
   }
 
   /// Cập nhật trạng thái xử lý & chi phí sửa chữa sự cố
@@ -332,7 +467,10 @@ class RentalProvider extends ChangeNotifier {
         clearCompletedAt: status != MaintenanceStatus.completed,
       );
       notifyListeners();
-      await DatabaseHelper.updateMaintenanceRequest(_maintenanceRequests[index]);
+      await DatabaseHelper.updateMaintenanceRequest(
+          _maintenanceRequests[index]);
+      _cloudUpsert(
+          'maintenance_requests', _maintenanceRequests[index].toMap());
     }
   }
 
@@ -343,6 +481,7 @@ class RentalProvider extends ChangeNotifier {
       _maintenanceRequests[index] = updatedReq;
       notifyListeners();
       await DatabaseHelper.updateMaintenanceRequest(updatedReq);
+      _cloudUpsert('maintenance_requests', updatedReq.toMap());
     }
   }
 
@@ -351,5 +490,33 @@ class RentalProvider extends ChangeNotifier {
     _maintenanceRequests.removeWhere((r) => r.id == reqId);
     notifyListeners();
     await DatabaseHelper.deleteMaintenanceRequest(reqId);
+    _cloudDelete('maintenance_requests', 'id', reqId);
   }
+
+  // ===========================================================================
+  // HỖ TRỢ ĐỒNG BỘ CLOUD
+  // ===========================================================================
+
+  /// Đẩy dữ liệu lên Cloud ở nền (không chặn giao diện). Lỗi mạng được
+  /// SupabaseService đưa vào hàng đợi để gửi lại ở lần đồng bộ sau.
+  void _cloudUpsert(String table, Map<String, dynamic> data) {
+    _localWriteVersion++;
+    SupabaseService.upsert(table, data).then((_) => notifyListeners());
+  }
+
+  void _cloudDelete(String table, String column, String value) {
+    _localWriteVersion++;
+    SupabaseService.delete(table, column, value).then((_) => notifyListeners());
+  }
+}
+
+/// Các lỗi nghiệp vụ khi lập hóa đơn
+enum InvoiceError { invalidMeter, alreadyBilledThisMonth }
+
+class InvoiceException implements Exception {
+  final InvoiceError error;
+  const InvoiceException(this.error);
+
+  @override
+  String toString() => 'InvoiceException($error)';
 }

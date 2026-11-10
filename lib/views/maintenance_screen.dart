@@ -209,7 +209,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
             margin: const EdgeInsets.all(16),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(14),
               boxShadow: const [
                 BoxShadow(
@@ -457,7 +457,6 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                                 style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
                                 ),
                               ),
                               if (req.description != null &&

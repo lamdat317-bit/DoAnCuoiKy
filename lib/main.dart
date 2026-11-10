@@ -33,7 +33,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => AuthProvider(settingsService.prefs)),
         ChangeNotifierProvider(create: (_) => RentalProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider(settingsService)),
       ],

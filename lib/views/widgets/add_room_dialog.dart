@@ -293,7 +293,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
       return Container(
         height: 150,
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
         ),
@@ -613,7 +613,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 12),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: Theme.of(context).cardColor,
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(color: Colors.grey.shade300),
                                 ),
@@ -652,7 +652,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 12),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: Theme.of(context).cardColor,
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(color: Colors.grey.shade300),
                                 ),

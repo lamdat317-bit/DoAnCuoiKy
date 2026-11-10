@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
 import '../../l10n/app_localizations.dart';
 import '../../models/room_member_model.dart';
 import '../../models/room_model.dart';
@@ -67,7 +68,11 @@ class _RoomMembersDialogState extends State<RoomMembersDialog> {
           ],
         ),
         content: Text(
-          loc.deleteMemberConfirmMsg(member.name, member.idCard, widget.room.name),
+          loc.deleteMemberConfirmMsg(
+            member.name,
+            member.idCard,
+            widget.room.name,
+          ),
         ),
         actions: [
           TextButton(
@@ -78,9 +83,10 @@ class _RoomMembersDialogState extends State<RoomMembersDialog> {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               Navigator.pop(ctx);
-              await context
-                  .read<RentalProvider>()
-                  .deleteRoomMember(member.id, widget.room.id);
+              await context.read<RentalProvider>().deleteRoomMember(
+                member.id,
+                widget.room.id,
+              );
               await _loadMembers();
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -92,7 +98,10 @@ class _RoomMembersDialogState extends State<RoomMembersDialog> {
                 );
               }
             },
-            child: Text(loc.deleteNow, style: const TextStyle(color: Colors.white)),
+            child: Text(
+              loc.deleteNow,
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -161,219 +170,253 @@ class _RoomMembersDialogState extends State<RoomMembersDialog> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _members.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.badge_outlined,
-                                  size: 56, color: Colors.grey.shade400),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Chưa có thành viên nào được đăng ký CCCD',
-                                style: TextStyle(
-                                    fontSize: 14, color: Colors.grey.shade600),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Bấm nút bên dưới để thêm thành viên mới',
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.grey.shade500),
-                              ),
-                            ],
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.badge_outlined,
+                            size: 56,
+                            color: Colors.grey.shade400,
                           ),
-                        )
-                      : ListView.builder(
-                          itemCount: _members.length,
-                          itemBuilder: (context, index) {
-                            final m = _members[index];
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(
-                                  color: m.isRepresentative
-                                      ? const Color(0xFF3F51B5)
-                                      : Colors.transparent,
-                                  width: m.isRepresentative ? 1.5 : 0,
-                                ),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                          const SizedBox(height: 12),
+                          Text(
+                            'Chưa có thành viên nào được đăng ký CCCD',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Bấm nút bên dưới để thêm thành viên mới',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: _members.length,
+                      itemBuilder: (context, index) {
+                        final m = _members[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: m.isRepresentative
+                                  ? const Color(0xFF3F51B5)
+                                  : Colors.transparent,
+                              width: m.isRepresentative ? 1.5 : 0,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
                                   children: [
-                                    Row(
-                                      children: [
-                                        CircleAvatar(
-                                          backgroundColor: m.isRepresentative
-                                              ? const Color(0xFF3F51B5)
-                                              : Colors.grey.shade300,
-                                          foregroundColor: m.isRepresentative
-                                              ? Colors.white
-                                              : Colors.black87,
-                                          radius: 18,
-                                          child: Text(
-                                            m.name.isNotEmpty
-                                                ? m.name[0].toUpperCase()
-                                                : 'T',
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.bold),
-                                          ),
+                                    CircleAvatar(
+                                      backgroundColor: m.isRepresentative
+                                          ? const Color(0xFF3F51B5)
+                                          : Colors.grey.shade300,
+                                      foregroundColor: m.isRepresentative
+                                          ? Colors.white
+                                          : Colors.black87,
+                                      radius: 18,
+                                      child: Text(
+                                        m.name.isNotEmpty
+                                            ? m.name[0].toUpperCase()
+                                            : 'T',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
                                         ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Column(
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          // Tên hiện đủ (xuống dòng nếu dài), nhãn "Đại diện" nằm dưới tên
+                                          Column(
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
-                                              Row(
-                                                children: [
-                                                  Expanded(
-                                                    child: Text(
-                                                      m.name,
-                                                      style: const TextStyle(
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.bold,
+                                              Text(
+                                                m.name,
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              if (m.isRepresentative) ...[
+                                                const SizedBox(height: 4),
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 2,
                                                       ),
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(
+                                                      0x1A3F51B5,
+                                                    ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          6,
+                                                        ),
+                                                  ),
+                                                  child: const Text(
+                                                    'Đại diện hợp đồng',
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Color(0xFF3F51B5),
                                                     ),
                                                   ),
-                                                  if (m.isRepresentative)
-                                                    Container(
-                                                      padding: const EdgeInsets
-                                                          .symmetric(
-                                                          horizontal: 6,
-                                                          vertical: 2),
-                                                      decoration: BoxDecoration(
-                                                        color: const Color(
-                                                            0x1A3F51B5),
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(6),
-                                                      ),
-                                                      child: const Text(
-                                                        'Đại diện hợp đồng',
-                                                        style: TextStyle(
-                                                          fontSize: 10,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          color:
-                                                              Color(0xFF3F51B5),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                ],
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'CCCD/CMND: ${m.idCard}',
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuButton<String>(
+                                      icon: const Icon(
+                                        Icons.more_vert,
+                                        size: 20,
+                                      ),
+                                      onSelected: (val) {
+                                        if (val == 'edit') {
+                                          _openAddEditMemberDialog(
+                                            memberToEdit: m,
+                                          );
+                                        } else if (val == 'delete') {
+                                          _confirmDeleteMember(m);
+                                        }
+                                      },
+                                      itemBuilder: (ctx) => [
+                                        const PopupMenuItem<String>(
+                                          value: 'edit',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.edit,
+                                                size: 18,
+                                                color: Color(0xFF3F51B5),
                                               ),
-                                              const SizedBox(height: 2),
+                                              SizedBox(width: 8),
+                                              Text('Chỉnh sửa'),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuItem<String>(
+                                          value: 'delete',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.delete,
+                                                size: 18,
+                                                color: Colors.red,
+                                              ),
+                                              SizedBox(width: 8),
                                               Text(
-                                                'CCCD/CMND: ${m.idCard}',
-                                                style: const TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Colors.black87,
+                                                'Xóa thành viên',
+                                                style: TextStyle(
+                                                  color: Colors.red,
                                                 ),
                                               ),
                                             ],
                                           ),
                                         ),
-                                        PopupMenuButton<String>(
-                                          icon: const Icon(Icons.more_vert,
-                                              size: 20),
-                                          onSelected: (val) {
-                                            if (val == 'edit') {
-                                              _openAddEditMemberDialog(
-                                                  memberToEdit: m);
-                                            } else if (val == 'delete') {
-                                              _confirmDeleteMember(m);
-                                            }
-                                          },
-                                          itemBuilder: (ctx) => [
-                                            const PopupMenuItem<String>(
-                                              value: 'edit',
-                                              child: Row(
-                                                children: [
-                                                  Icon(Icons.edit,
-                                                      size: 18,
-                                                      color: Color(0xFF3F51B5)),
-                                                  SizedBox(width: 8),
-                                                  Text('Chỉnh sửa'),
-                                                ],
-                                              ),
-                                            ),
-                                            const PopupMenuItem<String>(
-                                              value: 'delete',
-                                              child: Row(
-                                                children: [
-                                                  Icon(Icons.delete,
-                                                      size: 18,
-                                                      color: Colors.red),
-                                                  SizedBox(width: 8),
-                                                  Text('Xóa thành viên',
-                                                      style: TextStyle(
-                                                          color: Colors.red)),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Wrap(
-                                      spacing: 12,
-                                      runSpacing: 4,
-                                      children: [
-                                        if (m.phone != null &&
-                                            m.phone!.isNotEmpty)
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(Icons.phone,
-                                                  size: 14, color: Colors.grey),
-                                              const SizedBox(width: 4),
-                                              Text(m.phone!,
-                                                  style: const TextStyle(
-                                                      fontSize: 12)),
-                                            ],
-                                          ),
-                                        if (m.dateOfBirth != null)
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(Icons.cake,
-                                                  size: 14, color: Colors.grey),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                  dateFormat
-                                                      .format(m.dateOfBirth!),
-                                                  style: const TextStyle(
-                                                      fontSize: 12)),
-                                            ],
-                                          ),
-                                        if (m.hometown != null &&
-                                            m.hometown!.isNotEmpty)
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(Icons.home_work,
-                                                  size: 14, color: Colors.grey),
-                                              const SizedBox(width: 4),
-                                              Text('Quê: ${m.hometown}',
-                                                  style: const TextStyle(
-                                                      fontSize: 12)),
-                                            ],
-                                          ),
                                       ],
                                     ),
                                   ],
                                 ),
-                              ),
-                            );
-                          },
-                        ),
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 12,
+                                  runSpacing: 4,
+                                  children: [
+                                    if (m.phone != null && m.phone!.isNotEmpty)
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.phone,
+                                            size: 14,
+                                            color: Colors.grey,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            m.phone!,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    if (m.dateOfBirth != null)
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.cake,
+                                            size: 14,
+                                            color: Colors.grey,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            dateFormat.format(m.dateOfBirth!),
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    if (m.hometown != null &&
+                                        m.hometown!.isNotEmpty)
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.home_work,
+                                            size: 14,
+                                            color: Colors.grey,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Quê: ${m.hometown}',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
             ),
             const SizedBox(height: 12),
 
@@ -390,9 +433,10 @@ class _RoomMembersDialogState extends State<RoomMembersDialog> {
               label: const Text(
                 'THÊM THÀNH VIÊN CCCD',
                 style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white),
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
             ),
           ],
@@ -502,9 +546,11 @@ class _AddEditMemberSubDialogState extends State<AddEditMemberSubDialog> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isEditing
-                ? 'Cập nhật thông tin $name thành công!'
-                : 'Đã thêm $name vào danh sách CCCD thành công!'),
+            content: Text(
+              isEditing
+                  ? 'Cập nhật thông tin $name thành công!'
+                  : 'Đã thêm $name vào danh sách CCCD thành công!',
+            ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
@@ -531,7 +577,9 @@ class _AddEditMemberSubDialogState extends State<AddEditMemberSubDialog> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    isEditing ? 'Chỉnh sửa thông tin CCCD' : 'Thêm thành viên CCCD',
+                    isEditing
+                        ? 'Chỉnh sửa thông tin CCCD'
+                        : 'Thêm thành viên CCCD',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -599,7 +647,9 @@ class _AddEditMemberSubDialogState extends State<AddEditMemberSubDialog> {
                       onTap: () => _selectDob(context),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 12),
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(10),
@@ -607,21 +657,30 @@ class _AddEditMemberSubDialogState extends State<AddEditMemberSubDialog> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.cake, size: 18, color: Colors.grey),
+                            const Icon(
+                              Icons.cake,
+                              size: 18,
+                              color: Colors.grey,
+                            ),
                             const SizedBox(width: 8),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Ngày sinh',
-                                    style: TextStyle(
-                                        fontSize: 11, color: Colors.grey)),
+                                const Text(
+                                  'Ngày sinh',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey,
+                                  ),
+                                ),
                                 Text(
                                   _dateOfBirth != null
                                       ? _dateFormat.format(_dateOfBirth!)
                                       : 'Chọn ngày sinh',
                                   style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ],
                             ),
@@ -671,14 +730,17 @@ class _AddEditMemberSubDialogState extends State<AddEditMemberSubDialog> {
                   backgroundColor: const Color(0xFF3F51B5),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
-                icon: Icon(isEditing ? Icons.save : Icons.person_add,
-                    color: Colors.white),
+                icon: Icon(
+                  isEditing ? Icons.save : Icons.person_add,
+                  color: Colors.white,
+                ),
                 label: Text(
                   isEditing ? 'CẬP NHẬT THÔNG TIN' : 'LƯU THÀNH VIÊN CCCD',
                   style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ],
