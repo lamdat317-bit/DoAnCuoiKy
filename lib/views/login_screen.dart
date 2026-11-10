@@ -78,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(errorMessage),
+            content: Text(context.loc.t(errorMessage)),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -129,7 +129,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(errorMessage),
+            content: Text(context.loc.t(errorMessage)),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),

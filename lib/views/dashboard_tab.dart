@@ -19,6 +19,7 @@ import '../models/invoice_model.dart';
 import '../models/room_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/rental_provider.dart';
+import '../providers/settings_provider.dart';
 import 'invoice_detail_dialog.dart';
 import 'settings_screen.dart';
 import 'widgets/billing_bottom_sheet.dart';
@@ -62,7 +63,9 @@ class DashboardTab extends StatelessWidget {
     required List<Room> rooms,
     required Color primaryColor,
     required String emptyMessage,
+    required IconData icon,
   }) {
+    final loc = context.loc;
     final currencyFormatter =
         NumberFormat.currency(locale: 'vi_VN', symbol: 'đ', decimalDigits: 0);
     final dateFormat = DateFormat('dd/MM/yyyy');
@@ -102,9 +105,7 @@ class DashboardTab extends StatelessWidget {
                           radius: 16,
                           backgroundColor: primaryColor.withValues(alpha: 0.15),
                           child: Icon(
-                            title.contains('trống')
-                                ? Icons.meeting_room
-                                : Icons.group,
+                            icon,
                             color: primaryColor,
                             size: 18,
                           ),
@@ -181,7 +182,11 @@ class DashboardTab extends StatelessWidget {
                                         const Icon(Icons.person,
                                             size: 15, color: Colors.grey),
                                         const SizedBox(width: 4),
-                                        Text('Khách: ${room.tenantName ?? 'N/A'}',
+                                        Text(
+                                            loc.t('tenant_line', {
+                                              'name': room.tenantName ??
+                                                  loc.unknownTenant
+                                            }),
                                             style: const TextStyle(
                                                 fontWeight: FontWeight.w500)),
                                         const Spacer(),
@@ -203,7 +208,10 @@ class DashboardTab extends StatelessWidget {
                                         const Icon(Icons.group,
                                             size: 15, color: Colors.orange),
                                         const SizedBox(width: 4),
-                                        Text('Số người ở: ${room.occupantCount} người',
+                                        Text(
+                                            loc.t('occupants_line', {
+                                              'count': '${room.occupantCount}'
+                                            }),
                                             style: const TextStyle(fontSize: 12)),
                                       ],
                                     ),
@@ -211,14 +219,14 @@ class DashboardTab extends StatelessWidget {
                                     Row(
                                       children: [
                                         Text(
-                                          '📅 Vào ở: ${room.checkInDate != null ? dateFormat.format(room.checkInDate!) : 'N/A'}',
+                                          '📅 ${loc.checkIn}: ${room.checkInDate != null ? dateFormat.format(room.checkInDate!) : loc.notSelected}',
                                           style: TextStyle(
                                               fontSize: 11,
                                               color: Colors.grey.shade700),
                                         ),
                                         const SizedBox(width: 12),
                                         Text(
-                                          '🏁 Out: ${room.checkOutDate != null ? dateFormat.format(room.checkOutDate!) : 'N/A'}',
+                                          '🏁 ${loc.checkOut}: ${room.checkOutDate != null ? dateFormat.format(room.checkOutDate!) : loc.notSelected}',
                                           style: const TextStyle(
                                               fontSize: 11,
                                               color: Colors.red,
@@ -235,7 +243,7 @@ class DashboardTab extends StatelessWidget {
                                           _openBillingBottomSheet(context, room);
                                         },
                                         icon: const Icon(Icons.calculate, size: 16),
-                                        label: const Text('Chốt tiền điện nước'),
+                                        label: Text(loc.t('record_meter_btn')),
                                         style: OutlinedButton.styleFrom(
                                           padding: const EdgeInsets.symmetric(vertical: 6),
                                         ),
@@ -243,7 +251,10 @@ class DashboardTab extends StatelessWidget {
                                     ),
                                   ] else ...[
                                     Text(
-                                      'Chỉ số điện cũ: ${room.oldElectricity} kWh | Nước cũ: ${room.oldWater} m³',
+                                      loc.t('old_meter_line', {
+                                        'elec': '${room.oldElectricity}',
+                                        'water': '${room.oldWater}',
+                                      }),
                                       style: TextStyle(
                                           fontSize: 12,
                                           color: Colors.grey.shade600),
@@ -253,11 +264,16 @@ class DashboardTab extends StatelessWidget {
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: Colors.green.shade100,
+                                        color: room.status ==
+                                                RoomStatus.available
+                                            ? Colors.green.shade100
+                                            : Colors.grey.shade300,
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
-                                        'Trạng thái: Trống (Sẵn sàng cho thuê)',
+                                        room.status == RoomStatus.available
+                                            ? loc.t('room_ready_status')
+                                            : '${loc.t('status_label')}: ${loc.roomStatus(room.status)}',
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.bold,
@@ -341,8 +357,14 @@ class DashboardTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final provider = context.watch<RentalProvider>();
+    final settings = context.watch<SettingsProvider>();
+    final loc = context.loc;
     final currencyFormatter =
         NumberFormat.currency(locale: 'vi_VN', symbol: 'đ', decimalDigits: 0);
+    final roleText =
+        auth.userRole == 'Chủ trọ' ? loc.roleLandlord : auth.userRole;
+    // Chỉ hiển thị vài hóa đơn mới nhất, xem đầy đủ ở tab Hóa đơn
+    final recentInvoices = provider.invoices.take(5).toList();
 
     final availableRooms =
         provider.rooms.where((r) => r.status == RoomStatus.available).toList();
@@ -383,7 +405,7 @@ class DashboardTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Xin chào, ${auth.userName} 👋',
+                        loc.t('greeting', {'name': auth.userName}),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -391,7 +413,7 @@ class DashboardTab extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Vai trò: ${auth.userRole} | ${auth.userEmail ?? ''}',
+                        '${loc.t('role_line', {'role': roleText})} | ${auth.userEmail ?? ''}',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey.shade600,
@@ -403,7 +425,7 @@ class DashboardTab extends StatelessWidget {
                 ),
                 IconButton(
                   icon: const Icon(Icons.settings, color: Color(0xFF3F51B5)),
-                  tooltip: 'Cài đặt Biểu phí & VietQR',
+                  tooltip: loc.settingsTitle,
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -441,9 +463,9 @@ class DashboardTab extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'DOANH THU DỰ KIẾN THÁNG',
-                      style: TextStyle(
+                    Text(
+                      loc.expectedRevenue,
+                      style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                         color: Colors.white70,
@@ -466,7 +488,8 @@ class DashboardTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  currencyFormatter.format(provider.totalExpectedRevenue),
+                  currencyFormatter.format(
+                      provider.expectedRevenueThisMonth(settings.serviceFee)),
                   style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -474,10 +497,22 @@ class DashboardTab extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'Dựa trên các phòng đang cho thuê',
-                  style: TextStyle(
-                    fontSize: 13,
+                Text(
+                  loc.t('collected_this_month', {
+                    'amount':
+                        currencyFormatter.format(provider.collectedThisMonth),
+                  }),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  loc.t('expected_revenue_desc'),
+                  style: const TextStyle(
+                    fontSize: 12,
                     color: Color(0xE6FFFFFF),
                   ),
                 ),
@@ -508,9 +543,9 @@ class DashboardTab extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'TỔNG CÔNG NỢ CHƯA THU',
-                          style: TextStyle(
+                        Text(
+                          loc.totalUnpaidDebt,
+                          style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: Colors.deepOrange,
@@ -526,7 +561,7 @@ class DashboardTab extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'Hiện có ${provider.unpaidInvoicesCount} hóa đơn chưa thanh toán',
+                          loc.unpaidInvoicesCount(provider.unpaidInvoicesCount),
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade800,
@@ -545,49 +580,52 @@ class DashboardTab extends StatelessWidget {
           Row(
             children: [
               _buildStatCard(
-                title: 'Phòng trống',
+                title: loc.statAvailable,
                 value: '${provider.availableCount}',
                 icon: Icons.meeting_room_outlined,
                 color: Colors.green,
                 onTap: () {
                   _showRoomListModal(
                     context,
-                    title: 'Danh sách Phòng trống',
+                    title: loc.modalAvailableRooms,
                     rooms: availableRooms,
                     primaryColor: Colors.green,
-                    emptyMessage: 'Hiện không có phòng nào đang trống',
+                    emptyMessage: loc.noEmptyRoomsMsg,
+                    icon: Icons.meeting_room,
                   );
                 },
               ),
               const SizedBox(width: 10),
               _buildStatCard(
-                title: 'Đang thuê',
+                title: loc.statOccupied,
                 value: '${provider.occupiedCount}',
                 icon: Icons.people_outline,
                 color: Colors.orange,
                 onTap: () {
                   _showRoomListModal(
                     context,
-                    title: 'Danh sách Phòng đang thuê',
+                    title: loc.modalOccupiedRooms,
                     rooms: occupiedRooms,
                     primaryColor: Colors.orange.shade900,
-                    emptyMessage: 'Hiện chưa có phòng nào đang thuê',
+                    emptyMessage: loc.noRentedRoomsMsg,
+                    icon: Icons.group,
                   );
                 },
               ),
               const SizedBox(width: 10),
               _buildStatCard(
-                title: 'Lấp đầy',
+                title: loc.statOccupancy,
                 value: '${provider.occupancyRate.toStringAsFixed(0)}%',
                 icon: Icons.pie_chart_outline,
                 color: const Color(0xFF3F51B5),
                 onTap: () {
                   _showRoomListModal(
                     context,
-                    title: 'Tỷ lệ Lấp đầy & Toàn bộ phòng',
+                    title: loc.modalOccupancyRooms,
                     rooms: provider.rooms,
                     primaryColor: const Color(0xFF3F51B5),
-                    emptyMessage: 'Chưa có dữ liệu phòng',
+                    emptyMessage: loc.noRoomsData,
+                    icon: Icons.pie_chart,
                   );
                 },
               ),
@@ -600,9 +638,9 @@ class DashboardTab extends StatelessWidget {
           const SizedBox(height: 24),
 
           // 6. Danh sách phòng cần chốt điện nước tháng này
-          const Text(
-            'Phòng cần chốt điện nước tháng này',
-            style: TextStyle(
+          Text(
+            loc.roomsNeedBilling,
+            style: const TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.bold,
               color: Color(0xFF3F51B5),
@@ -617,9 +655,9 @@ class DashboardTab extends StatelessWidget {
                 color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                'Hiện chưa có phòng nào đang thuê',
-                style: TextStyle(color: Colors.grey),
+              child: Text(
+                loc.noRentedRooms,
+                style: const TextStyle(color: Colors.grey),
               ),
             )
           else
@@ -647,7 +685,8 @@ class DashboardTab extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                      'Khách: ${room.tenantName ?? 'Chưa rõ'}\nĐiện cũ: ${room.oldElectricity} kWh | Nước cũ: ${room.oldWater} m³',
+                      '${loc.t('tenant_line', {'name': room.tenantName ?? loc.unknownTenant})}\n'
+                      '${loc.t('old_meter_line', {'elec': '${room.oldElectricity}', 'water': '${room.oldWater}'})}',
                     ),
                     isThreeLine: true,
                     trailing: provider.hasInvoiceThisMonth(room.id)
@@ -666,8 +705,8 @@ class DashboardTab extends StatelessWidget {
                                 vertical: 8,
                               ),
                             ),
-                            child: const Text('Tính tiền',
-                                style: TextStyle(fontSize: 13)),
+                            child: Text(loc.billingAction,
+                                style: const TextStyle(fontSize: 13)),
                           ),
                   ),
                 );
@@ -676,10 +715,10 @@ class DashboardTab extends StatelessWidget {
           const SizedBox(height: 24),
 
           // 7. Lịch sử Hóa đơn vừa lập gần đây
-          if (provider.invoices.isNotEmpty) ...[
-            const Text(
-              'Hóa đơn vừa lập gần đây',
-              style: TextStyle(
+          if (recentInvoices.isNotEmpty) ...[
+            Text(
+              loc.recentInvoices,
+              style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF3F51B5),
@@ -689,9 +728,9 @@ class DashboardTab extends StatelessWidget {
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: provider.invoices.length,
+              itemCount: recentInvoices.length,
               itemBuilder: (context, index) {
-                final inv = provider.invoices[index];
+                final inv = recentInvoices[index];
                 final formattedDate =
                     DateFormat('dd/MM/yyyy HH:mm').format(inv.createdAt);
 
@@ -710,7 +749,7 @@ class DashboardTab extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                        'Ngày tạo: $formattedDate\nTrạng thái: ${inv.status.displayName}'),
+                        '${loc.createdDate}: $formattedDate\n${loc.t('status_label')}: ${loc.invoiceStatus(inv.status)}'),
                     isThreeLine: true,
                     trailing: Text(
                       currencyFormatter.format(inv.totalAmount),

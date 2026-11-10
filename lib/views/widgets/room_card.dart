@@ -126,8 +126,33 @@ class RoomCard extends StatelessWidget {
     }
   }
 
+  void _showError(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.orange.shade900,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   void _confirmDelete(BuildContext context) {
     final loc = context.loc;
+    final provider = context.read<RentalProvider>();
+    // Kiểm tra trước khi hỏi xác nhận để báo lý do không xóa được
+    if (room.status == RoomStatus.occupied) {
+      _showError(context,
+          loc.t('room_occupied_cannot_delete', {'room': room.name}));
+      return;
+    }
+    final unpaid = provider.unpaidInvoicesOfRoom(room.id).length;
+    if (unpaid > 0) {
+      _showError(
+          context,
+          loc.t('room_unpaid_cannot_delete',
+              {'room': room.name, 'count': '$unpaid'}));
+      return;
+    }
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -149,10 +174,26 @@ class RoomCard extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
             ),
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(ctx).pop();
-              context.read<RentalProvider>().deleteRoom(room.id);
-              ScaffoldMessenger.of(context).showSnackBar(
+              final messenger = ScaffoldMessenger.of(context);
+              try {
+                await provider.deleteRoom(room.id);
+              } on RoomDeleteException catch (e) {
+                messenger.showSnackBar(SnackBar(
+                  content: Text(e.error == RoomDeleteError.occupied
+                      ? loc.t('room_occupied_cannot_delete', {'room': room.name})
+                      : loc.t('room_unpaid_cannot_delete', {
+                          'room': room.name,
+                          'count':
+                              '${provider.unpaidInvoicesOfRoom(room.id).length}',
+                        })),
+                  backgroundColor: Colors.orange.shade900,
+                  behavior: SnackBarBehavior.floating,
+                ));
+                return;
+              }
+              messenger.showSnackBar(
                 SnackBar(
                   content: Text(loc.deleteRoomSuccess(room.name)),
                   backgroundColor: Colors.red,
@@ -182,8 +223,20 @@ class RoomCard extends StatelessWidget {
                   ? const Icon(Icons.check, color: Color(0xFF3F51B5))
                   : null,
               onTap: () {
-                context.read<RentalProvider>().updateRoomStatus(room.id, status);
                 Navigator.of(ctx).pop();
+                if (status == room.status) return;
+                // Phòng đang thuê → phải qua Trả phòng để quyết toán cọc & điện nước
+                if (room.status == RoomStatus.occupied) {
+                  _showError(context, loc.t('use_checkout_to_release'));
+                  return;
+                }
+                // Cho thuê → cần nhập thông tin khách, ngày vào ở, tiền cọc
+                if (status == RoomStatus.occupied) {
+                  _showError(context, loc.t('use_edit_to_rent'));
+                  _openEditDialog(context);
+                  return;
+                }
+                context.read<RentalProvider>().updateRoomStatus(room.id, status);
               },
             );
           }).toList(),
@@ -349,25 +402,25 @@ class RoomCard extends StatelessWidget {
                             }
                           },
                           itemBuilder: (ctx) => [
-                            const PopupMenuItem<String>(
+                            PopupMenuItem<String>(
                               value: 'members',
                               child: Row(
                                 children: [
-                                  Icon(Icons.badge_outlined,
+                                  const Icon(Icons.badge_outlined,
                                       size: 18, color: Color(0xFF3F51B5)),
-                                  SizedBox(width: 10),
-                                  Text('Thành viên & CCCD'),
+                                  const SizedBox(width: 10),
+                                  Text(context.loc.t('members_and_id')),
                                 ],
                               ),
                             ),
-                            const PopupMenuItem<String>(
+                            PopupMenuItem<String>(
                               value: 'maintenance',
                               child: Row(
                                 children: [
-                                  Icon(Icons.build_outlined,
+                                  const Icon(Icons.build_outlined,
                                       size: 18, color: Colors.orange),
-                                  SizedBox(width: 10),
-                                  Text('Báo sự cố bảo trì'),
+                                  const SizedBox(width: 10),
+                                  Text(context.loc.t('report_maintenance')),
                                 ],
                               ),
                             ),
@@ -591,7 +644,7 @@ class RoomCard extends StatelessWidget {
                     OutlinedButton.icon(
                       onPressed: () => _openMembersDialog(context),
                       icon: const Icon(Icons.badge_outlined, size: 16),
-                      label: const Text('Thành viên', style: TextStyle(fontSize: 11)),
+                      label: Text(context.loc.t('members_short'), style: const TextStyle(fontSize: 11)),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.teal.shade800,
                         side: BorderSide(color: Colors.teal.shade800),
@@ -602,7 +655,7 @@ class RoomCard extends StatelessWidget {
                     OutlinedButton.icon(
                       onPressed: () => _openMaintenanceDialog(context),
                       icon: const Icon(Icons.build_outlined, size: 16),
-                      label: const Text('Bảo trì', style: TextStyle(fontSize: 11)),
+                      label: Text(context.loc.t('maintenance_short'), style: const TextStyle(fontSize: 11)),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.orange.shade900,
                         side: BorderSide(color: Colors.orange.shade900),

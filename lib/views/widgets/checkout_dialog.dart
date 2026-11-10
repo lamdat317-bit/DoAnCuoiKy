@@ -238,11 +238,34 @@ class _CheckoutDialogState extends State<CheckoutDialog> {
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 onPressed: () async {
                   if (!_formKey.currentState!.validate()) return;
-                  await context.read<RentalProvider>().checkoutRoom(
-                        widget.room.id,
-                        _lastElec,
-                        _lastWater,
-                      );
+                  final provider = context.read<RentalProvider>();
+                  final unpaid = provider.unpaidInvoicesOfRoom(widget.room.id);
+                  if (unpaid.isNotEmpty) {
+                    final debt = unpaid.fold(
+                        0.0, (sum, inv) => sum + inv.totalAmount);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(loc.t('checkout_unpaid_block', {
+                          'room': widget.room.name,
+                          'count': '${unpaid.length}',
+                          'amount': _currencyFormatter.format(debt),
+                        })),
+                        backgroundColor: Colors.orange.shade900,
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 5),
+                      ),
+                    );
+                    return;
+                  }
+                  try {
+                    await provider.checkoutRoom(
+                      widget.room.id,
+                      _lastElec,
+                      _lastWater,
+                    );
+                  } catch (_) {
+                    return; // Đã được chặn bởi validator / kiểm tra ở trên
+                  }
                   if (context.mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(

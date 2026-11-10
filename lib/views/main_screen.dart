@@ -83,7 +83,7 @@ class _MainScreenState extends State<MainScreen> {
               leading: const Icon(Icons.email, color: Color(0xFF3F51B5)),
               title: Text(loc.loginEmail, style: const TextStyle(fontSize: 12, color: Colors.grey)),
               subtitle: Text(
-                auth.userEmail ?? 'Chưa cập nhật',
+                auth.userEmail ?? loc.notSelected,
                 style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
               ),
             ),
@@ -190,7 +190,7 @@ class _MainScreenState extends State<MainScreen> {
                   if (error != null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(error),
+                        content: Text(loc.t(error)),
                         backgroundColor: Colors.red,
                         behavior: SnackBarBehavior.floating,
                       ),
@@ -265,7 +265,7 @@ class _MainScreenState extends State<MainScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.build_circle_outlined, color: Colors.orange),
-            tooltip: 'Quản lý Bảo trì Sự cố',
+            tooltip: loc.t('maintenance_title'),
             onPressed: () {
               Navigator.push(
                 context,

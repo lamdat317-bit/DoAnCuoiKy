@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../models/maintenance_request_model.dart';
 import '../providers/rental_provider.dart';
 import 'widgets/add_maintenance_dialog.dart';
@@ -35,30 +36,31 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
     final costController =
         TextEditingController(text: req.repairCost.toStringAsFixed(0));
     MaintenanceStatus chosenStatus = req.status;
+    final loc = context.loc;
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('Cập nhật sự cố - ${req.roomName}'),
+          title: Text(loc.t('maint_update_title', {'room': req.roomName})),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Tên sự cố: ${req.title}',
+              Text(loc.t('maint_issue_name', {'title': req.title}),
                   style: const TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               DropdownButtonFormField<MaintenanceStatus>(
                 initialValue: chosenStatus,
-                decoration: const InputDecoration(
-                  labelText: 'Trạng thái xử lý',
-                  prefixIcon: Icon(Icons.swap_horiz),
+                decoration: InputDecoration(
+                  labelText: loc.t('maint_status_label'),
+                  prefixIcon: const Icon(Icons.swap_horiz),
                 ),
                 items: MaintenanceStatus.values.map((status) {
                   return DropdownMenuItem<MaintenanceStatus>(
                     value: status,
-                    child: Text(status.displayName),
+                    child: Text(loc.maintenanceStatus(status)),
                   );
                 }).toList(),
                 onChanged: (val) {
@@ -73,9 +75,9 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
               TextFormField(
                 controller: costController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Chi phí sửa chữa (VNĐ)',
-                  prefixIcon: Icon(Icons.attach_money),
+                decoration: InputDecoration(
+                  labelText: loc.t('maint_cost_label'),
+                  prefixIcon: const Icon(Icons.attach_money),
                 ),
               ),
             ],
@@ -83,7 +85,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Hủy'),
+              child: Text(loc.cancel),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -100,14 +102,14 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Đã cập nhật sự cố ${req.title}'),
+                      content: Text(loc.t('maint_updated', {'title': req.title})),
                       backgroundColor: Colors.green,
                       behavior: SnackBarBehavior.floating,
                     ),
                   );
                 }
               },
-              child: const Text('Lưu thay đổi',
+              child: Text(loc.t('save_changes'),
                   style: TextStyle(color: Colors.white)),
             ),
           ],
@@ -117,22 +119,23 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
   }
 
   void _confirmDelete(BuildContext context, MaintenanceRequest req) {
+    final loc = context.loc;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.delete_forever, color: Colors.red),
-            SizedBox(width: 8),
-            Text('Xóa sự cố'),
+            const Icon(Icons.delete_forever, color: Colors.red),
+            const SizedBox(width: 8),
+            Text(loc.t('maint_delete_title')),
           ],
         ),
-        content: Text('Bạn có chắc chắn muốn xóa sự cố "${req.title}" không?'),
+        content: Text(loc.t('maint_delete_confirm', {'title': req.title})),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Hủy'),
+            child: Text(loc.cancel),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -141,15 +144,15 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
               await context.read<RentalProvider>().deleteMaintenanceRequest(req.id);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Đã xóa báo cáo sự cố'),
+                  SnackBar(
+                    content: Text(loc.t('maint_deleted')),
                     backgroundColor: Colors.red,
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
               }
             },
-            child: const Text('Xóa ngay', style: TextStyle(color: Colors.white)),
+            child: Text(loc.deleteNow, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -186,6 +189,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<RentalProvider>();
     final allRequests = provider.maintenanceRequests;
+    final loc = context.loc;
 
     final filteredRequests = allRequests.where((req) {
       if (_selectedFilter != null && req.status != _selectedFilter) {
@@ -200,7 +204,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Quản lý Sự cố & Bảo trì'),
+        title: Text(loc.t('maintenance_title')),
       ),
       body: Column(
         children: [
@@ -225,8 +229,8 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'SỰ CỐ CẦN XỬ LÝ',
+                      Text(
+                        loc.t('maint_pending_header'),
                         style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -234,7 +238,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${provider.pendingMaintenanceCount} yêu cầu',
+                        loc.t('maint_requests_count', {'count': '${provider.pendingMaintenanceCount}'}),
                         style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -250,8 +254,8 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'TỔNG CHI PHÍ BẢO TRÌ',
+                        Text(
+                          loc.t('maint_total_cost'),
                           style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -281,7 +285,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
             child: Row(
               children: [
                 FilterChip(
-                  label: Text('Tất cả (${allRequests.length})'),
+                  label: Text('${loc.all} (${allRequests.length})'),
                   selected: _selectedFilter == null,
                   onSelected: (selected) {
                     setState(() {
@@ -292,7 +296,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                 const SizedBox(width: 8),
                 FilterChip(
                   label: Text(
-                      'Chờ xử lý (${allRequests.where((r) => r.status == MaintenanceStatus.pending).length})'),
+                      '${loc.maintenanceStatus(MaintenanceStatus.pending)} (${allRequests.where((r) => r.status == MaintenanceStatus.pending).length})'),
                   selected: _selectedFilter == MaintenanceStatus.pending,
                   selectedColor: Colors.orange.shade100,
                   checkmarkColor: Colors.orange.shade900,
@@ -306,7 +310,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                 const SizedBox(width: 8),
                 FilterChip(
                   label: Text(
-                      'Đang sửa (${allRequests.where((r) => r.status == MaintenanceStatus.inProgress).length})'),
+                      '${loc.maintenanceStatus(MaintenanceStatus.inProgress)} (${allRequests.where((r) => r.status == MaintenanceStatus.inProgress).length})'),
                   selected: _selectedFilter == MaintenanceStatus.inProgress,
                   selectedColor: Colors.blue.shade100,
                   checkmarkColor: Colors.blue.shade900,
@@ -320,7 +324,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                 const SizedBox(width: 8),
                 FilterChip(
                   label: Text(
-                      'Đã xong (${allRequests.where((r) => r.status == MaintenanceStatus.completed).length})'),
+                      '${loc.maintenanceStatus(MaintenanceStatus.completed)} (${allRequests.where((r) => r.status == MaintenanceStatus.completed).length})'),
                   selected: _selectedFilter == MaintenanceStatus.completed,
                   selectedColor: Colors.green.shade100,
                   checkmarkColor: Colors.green.shade900,
@@ -347,7 +351,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                             size: 64, color: Colors.grey.shade400),
                         const SizedBox(height: 12),
                         Text(
-                          'Chưa có báo cáo sự cố nào',
+                          loc.t('maint_empty'),
                           style: TextStyle(
                               fontSize: 16, color: Colors.grey.shade600),
                         ),
@@ -398,7 +402,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                                               BorderRadius.circular(8),
                                         ),
                                         child: Text(
-                                          req.status.displayName,
+                                          loc.maintenanceStatus(req.status),
                                           style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.bold,
@@ -418,27 +422,27 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                                           }
                                         },
                                         itemBuilder: (ctx) => [
-                                          const PopupMenuItem<String>(
+                                          PopupMenuItem<String>(
                                             value: 'update',
                                             child: Row(
                                               children: [
                                                 Icon(Icons.edit_outlined,
                                                     size: 18,
                                                     color: Color(0xFF3F51B5)),
-                                                SizedBox(width: 8),
-                                                Text('Cập nhật tiến độ / Chi phí'),
+                                                const SizedBox(width: 8),
+                                                Text(loc.t('maint_update_menu')),
                                               ],
                                             ),
                                           ),
-                                          const PopupMenuItem<String>(
+                                          PopupMenuItem<String>(
                                             value: 'delete',
                                             child: Row(
                                               children: [
                                                 Icon(Icons.delete_outline,
                                                     size: 18,
                                                     color: Colors.red),
-                                                SizedBox(width: 8),
-                                                Text('Xóa báo cáo',
+                                                const SizedBox(width: 8),
+                                                Text(loc.t('maint_delete_menu'),
                                                     style: TextStyle(
                                                         color: Colors.red)),
                                               ],
@@ -477,13 +481,13 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    'Báo lúc: ${dateFormat.format(req.createdAt)}',
+                                    loc.t('maint_reported_at', {'date': dateFormat.format(req.createdAt)}),
                                     style: TextStyle(
                                         fontSize: 11, color: Colors.grey.shade600),
                                   ),
                                   if (req.repairCost > 0)
                                     Text(
-                                      'Chi phí: ${currency.format(req.repairCost)}',
+                                      loc.t('maint_cost_line', {'amount': currency.format(req.repairCost)}),
                                       style: const TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
@@ -504,7 +508,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openAddMaintenanceDialog(context),
         icon: const Icon(Icons.add),
-        label: const Text('Báo sự cố mới'),
+        label: Text(loc.t('maint_new_btn')),
       ),
     );
   }

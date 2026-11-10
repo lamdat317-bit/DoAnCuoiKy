@@ -234,7 +234,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
     );
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     final loc = context.loc;
     if (_formKey.currentState!.validate()) {
       final name = _nameController.text.trim();
@@ -247,6 +247,30 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
       final deposit = double.tryParse(_depositController.text.trim()) ?? 0.0;
 
       final isEditing = widget.roomToEdit != null;
+
+      void showError(String msg) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(msg),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+
+      // Phòng đang có khách không được đổi sang Trống/Bảo trì ở đây
+      // (bỏ qua quyết toán cọc, điện nước & danh sách CCCD) → dùng Trả phòng.
+      if (isEditing &&
+          widget.roomToEdit!.status == RoomStatus.occupied &&
+          _selectedStatus != RoomStatus.occupied) {
+        showError(loc.t('use_checkout_to_release'));
+        return;
+      }
+      if (_selectedStatus == RoomStatus.occupied &&
+          _checkInDate != null &&
+          _checkOutDate != null &&
+          !_checkOutDate!.isAfter(_checkInDate!)) {
+        showError(loc.t('checkout_before_checkin'));
+        return;
+      }
 
       final roomData = Room(
         id: isEditing
@@ -269,11 +293,24 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
       );
 
       final provider = context.read<RentalProvider>();
-      if (isEditing) {
-        provider.updateRoom(roomData);
-      } else {
-        provider.addRoom(roomData);
+      try {
+        if (isEditing) {
+          await provider.updateRoom(roomData);
+        } else {
+          await provider.addRoom(roomData);
+        }
+      } on RoomNameTakenException catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.roomNameExists(e.name)),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
       }
+      if (!mounted) return;
 
       Navigator.of(context).pop();
 
@@ -421,7 +458,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                   TextButton.icon(
                     onPressed: _showSampleImagesPicker,
                     icon: const Icon(Icons.collections, size: 18),
-                    label: const Text('Samples', style: TextStyle(fontSize: 12)),
+                    label: Text(loc.t('sample_short'), style: const TextStyle(fontSize: 12)),
                   ),
                   TextButton.icon(
                     onPressed: _showUrlInputDialog,
@@ -443,6 +480,17 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                   if (value == null || value.trim().isEmpty) {
                     return loc.requiredField;
                   }
+                  final name = value.trim();
+                  final original = widget.roomToEdit;
+                  final unchanged = original != null &&
+                      original.name.trim().toLowerCase() == name.toLowerCase();
+                  if (!unchanged &&
+                      context.read<RentalProvider>().isRoomNameTaken(
+                            name,
+                            excludeRoomId: original?.id,
+                          )) {
+                    return loc.roomNameExists(name);
+                  }
                   return null;
                 },
               ),
@@ -459,8 +507,12 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                   if (value == null || value.trim().isEmpty) {
                     return loc.requiredField;
                   }
-                  if (double.tryParse(value.trim()) == null) {
+                  final price = double.tryParse(value.trim());
+                  if (price == null) {
                     return loc.invalidNumber;
+                  }
+                  if (price < 0) {
+                    return loc.mustBePositive;
                   }
                   return null;
                 },
@@ -558,10 +610,15 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                       TextFormField(
                         controller: _tenantController,
                         decoration: InputDecoration(
-                          labelText: loc.tenantNameLabel,
+                          labelText: '${loc.tenantNameLabel} *',
                           hintText: 'Nguyễn Văn A',
                           prefixIcon: const Icon(Icons.person),
                         ),
+                        // Phòng đang thuê phải biết ai thuê (hóa đơn in tên khách)
+                        validator: (value) =>
+                            (value == null || value.trim().isEmpty)
+                                ? loc.requiredField
+                                : null,
                       ),
                       const SizedBox(height: 12),
                       Row(
@@ -587,6 +644,15 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                                 hintText: '2',
                                 prefixIcon: const Icon(Icons.group),
                               ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return null; // mặc định 1 người
+                                }
+                                final n = int.tryParse(value.trim());
+                                if (n == null) return loc.invalidNumber;
+                                if (n < 1) return loc.t('occupants_min');
+                                return null;
+                              },
                             ),
                           ),
                         ],
@@ -600,6 +666,15 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                           hintText: '3500000',
                           prefixIcon: const Icon(Icons.lock, color: Colors.amber),
                         ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return null; // không cọc
+                          }
+                          final d = double.tryParse(value.trim());
+                          if (d == null) return loc.invalidNumber;
+                          if (d < 0) return loc.mustBePositive;
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 12),
 

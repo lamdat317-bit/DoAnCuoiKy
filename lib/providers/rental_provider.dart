@@ -145,10 +145,42 @@ class RentalProvider extends ChangeNotifier {
   int get maintenanceCount =>
       _rooms.where((room) => room.status == RoomStatus.maintenance).length;
 
-  /// Doanh thu dự kiến tháng (Tổng tiền thuê của các phòng đang cho thuê)
-  double get totalExpectedRevenue => _rooms
-      .where((room) => room.status == RoomStatus.occupied)
-      .fold(0.0, (sum, room) => sum + room.basePrice);
+  static bool _isSameMonth(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month;
+
+  /// Ngày ghi nhận doanh thu của hóa đơn đã thu = ngày xác nhận thu tiền
+  /// (dữ liệu cũ thiếu paidAt thì lấy ngày lập hóa đơn).
+  static DateTime _revenueDate(Invoice inv) => inv.paidAt ?? inv.createdAt;
+
+  /// Doanh thu dự kiến tháng hiện tại:
+  /// - Phòng đã lập hóa đơn trong tháng → lấy đúng tổng tiền hóa đơn
+  ///   (gồm tiền phòng + điện + nước + dịch vụ).
+  /// - Phòng đang thuê nhưng chưa chốt → tạm tính tiền phòng + phí dịch vụ
+  ///   (chưa biết số điện nước).
+  double expectedRevenueThisMonth(double serviceFee) {
+    final now = DateTime.now();
+    final billedThisMonth =
+        _invoices.where((inv) => _isSameMonth(inv.createdAt, now)).toList();
+    final billedRoomIds = billedThisMonth.map((inv) => inv.roomId).toSet();
+
+    final billedTotal =
+        billedThisMonth.fold(0.0, (sum, inv) => sum + inv.totalAmount);
+    final unbilledEstimate = _rooms
+        .where((room) =>
+            room.status == RoomStatus.occupied &&
+            !billedRoomIds.contains(room.id))
+        .fold(0.0, (sum, room) => sum + room.basePrice + serviceFee);
+
+    return billedTotal + unbilledEstimate;
+  }
+
+  /// Số tiền đã thực thu trong tháng hiện tại
+  double get collectedThisMonth {
+    final now = DateTime.now();
+    return _invoices
+        .where((inv) => inv.isPaid && _isSameMonth(_revenueDate(inv), now))
+        .fold(0.0, (sum, inv) => sum + inv.totalAmount);
+  }
 
   /// Tổng công nợ chưa thu (Tổng tiền của các hóa đơn chưa thanh toán)
   double get totalUnpaidDebt => _invoices
@@ -170,25 +202,29 @@ class RentalProvider extends ChangeNotifier {
           req.status == MaintenanceStatus.inProgress)
       .length;
 
-  /// Tổng chi phí sửa chữa bảo trì
-  double get totalMaintenanceCost =>
-      _maintenanceRequests.fold(0.0, (sum, req) => sum + req.repairCost);
+  /// Tổng chi phí sửa chữa bảo trì (bỏ qua sự cố đã hủy — không phát sinh chi)
+  double get totalMaintenanceCost => _maintenanceRequests
+      .where((req) => req.status != MaintenanceStatus.cancelled)
+      .fold(0.0, (sum, req) => sum + req.repairCost);
 
-  /// Lấy thống kê doanh thu 6 tháng gần nhất cho biểu đồ fl_chart
-  Map<String, double> getMonthlyRevenueStats() {
+  /// Các hóa đơn chưa thu của một phòng
+  List<Invoice> unpaidInvoicesOfRoom(String roomId) => _invoices
+      .where((inv) => inv.roomId == roomId && !inv.isPaid)
+      .toList();
+
+  /// Thống kê doanh thu THỰC THU 6 tháng gần nhất cho biểu đồ fl_chart.
+  /// Key = ngày đầu tháng (để giao diện tự hiển thị nhãn theo ngôn ngữ).
+  /// Tiền được tính vào tháng mà chủ trọ xác nhận đã thu (paidAt), vì hóa đơn
+  /// lập tháng này có thể đến tháng sau khách mới trả.
+  Map<DateTime, double> getMonthlyRevenueStats() {
     final now = DateTime.now();
-    final Map<String, double> stats = {};
+    final Map<DateTime, double> stats = {};
 
     for (int i = 5; i >= 0; i--) {
       final monthDate = DateTime(now.year, now.month - i, 1);
-      final label = 'T.${monthDate.month}';
-
-      // Doanh thu thực tế = tổng tiền các hóa đơn ĐÃ THANH TOÁN lập trong tháng
-      stats[label] = _invoices
+      stats[monthDate] = _invoices
           .where((inv) =>
-              inv.isPaid &&
-              inv.createdAt.year == monthDate.year &&
-              inv.createdAt.month == monthDate.month)
+              inv.isPaid && _isSameMonth(_revenueDate(inv), monthDate))
           .fold(0.0, (sum, inv) => sum + inv.totalAmount);
     }
 
@@ -199,8 +235,24 @@ class RentalProvider extends ChangeNotifier {
   // 2. QUẢN LÝ PHÒNG TRỌ (ROOM MANAGEMENT)
   // ===========================================================================
 
-  /// Thêm một phòng trọ mới vào danh sách & lưu SQLite
+  /// Chuẩn hóa tên phòng để so trùng: bỏ khoảng trắng, không phân biệt hoa
+  /// thường ("P.101", "p.101", "P. 101" được coi là cùng một phòng).
+  static String _normalizeRoomName(String name) =>
+      name.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+
+  /// Tên phòng đã tồn tại chưa. [excludeRoomId] = phòng đang sửa (bỏ qua chính nó).
+  bool isRoomNameTaken(String name, {String? excludeRoomId}) {
+    final key = _normalizeRoomName(name);
+    return _rooms.any((r) =>
+        r.id != excludeRoomId && _normalizeRoomName(r.name) == key);
+  }
+
+  /// Thêm một phòng trọ mới vào danh sách & lưu SQLite.
+  /// Ném [RoomNameTakenException] nếu tên phòng bị trùng.
   Future<void> addRoom(Room room) async {
+    if (isRoomNameTaken(room.name)) {
+      throw RoomNameTakenException(room.name);
+    }
     _rooms.add(room);
     notifyListeners();
     await DatabaseHelper.insertRoom(room);
@@ -210,6 +262,14 @@ class RentalProvider extends ChangeNotifier {
   /// Cập nhật thông tin phòng trọ (Giá thuê, Ảnh, Trạng thái, v.v.)
   Future<void> updateRoom(Room updatedRoom) async {
     final index = _rooms.indexWhere((r) => r.id == updatedRoom.id);
+    // Chỉ kiểm tra khi đổi tên (dữ liệu cũ lỡ trùng vẫn sửa được thông tin khác)
+    final renamed = index != -1 &&
+        _normalizeRoomName(_rooms[index].name) !=
+            _normalizeRoomName(updatedRoom.name);
+    if (renamed &&
+        isRoomNameTaken(updatedRoom.name, excludeRoomId: updatedRoom.id)) {
+      throw RoomNameTakenException(updatedRoom.name);
+    }
     if (index != -1) {
       _rooms[index] = updatedRoom;
       notifyListeners();
@@ -218,15 +278,27 @@ class RentalProvider extends ChangeNotifier {
     }
   }
 
-  /// Xóa phòng trọ khỏi hệ thống, kèm hóa đơn & sự cố bảo trì của phòng đó
+  /// Xóa phòng trọ khỏi hệ thống, kèm thành viên & sự cố bảo trì của phòng.
+  /// - Không cho xóa phòng đang có khách hoặc còn hóa đơn chưa thu
+  ///   (ném [RoomDeleteException]).
+  /// - GIỮ LẠI hóa đơn đã thu: đó là tiền đã nhận thật, xóa đi sẽ làm sai
+  ///   lịch sử doanh thu của các tháng trước (hóa đơn có lưu sẵn tên phòng).
   Future<void> deleteRoom(String roomId) async {
-    _rooms.removeWhere((r) => r.id == roomId);
-    _invoices.removeWhere((inv) => inv.roomId == roomId);
+    final index = _rooms.indexWhere((r) => r.id == roomId);
+    if (index == -1) return;
+    if (_rooms[index].status == RoomStatus.occupied) {
+      throw const RoomDeleteException(RoomDeleteError.occupied);
+    }
+    if (unpaidInvoicesOfRoom(roomId).isNotEmpty) {
+      throw const RoomDeleteException(RoomDeleteError.hasUnpaidInvoices);
+    }
+
+    _rooms.removeAt(index);
     _maintenanceRequests.removeWhere((req) => req.roomId == roomId);
     _roomMembersMap.remove(roomId);
     notifyListeners();
     await DatabaseHelper.deleteRoom(roomId);
-    for (final table in ['room_members', 'invoices', 'maintenance_requests']) {
+    for (final table in ['room_members', 'maintenance_requests']) {
       _cloudDelete(table, 'room_id', roomId);
     }
     _cloudDelete('rooms', 'id', roomId);
@@ -258,13 +330,20 @@ class RentalProvider extends ChangeNotifier {
   // 3. QUẢN LÝ HÓA ĐƠN & QUYẾT TOÁN (INVOICES & CHECKOUT)
   // ===========================================================================
 
-  /// Phòng đã được lập hóa đơn trong tháng hiện tại chưa
+  /// Khách HIỆN TẠI của phòng đã được lập hóa đơn trong tháng này chưa.
+  /// Hóa đơn của khách cũ (lập trước ngày khách mới vào ở) không tính, để
+  /// phòng trả rồi cho thuê lại trong cùng tháng vẫn lập được hóa đơn.
   bool hasInvoiceThisMonth(String roomId) {
     final now = DateTime.now();
+    final room = _rooms.where((r) => r.id == roomId).firstOrNull;
+    final checkIn = room?.checkInDate;
+    final tenantStart = checkIn == null
+        ? null
+        : DateTime(checkIn.year, checkIn.month, checkIn.day);
     return _invoices.any((inv) =>
         inv.roomId == roomId &&
-        inv.createdAt.year == now.year &&
-        inv.createdAt.month == now.month);
+        _isSameMonth(inv.createdAt, now) &&
+        (tenantStart == null || !inv.createdAt.isBefore(tenantStart)));
   }
 
   /// Tạo hóa đơn tính tiền mới & cập nhật chỉ số điện/nước mới cho phòng.
@@ -346,6 +425,10 @@ class RentalProvider extends ChangeNotifier {
   Future<void> checkoutRoom(String roomId, int lastElec, int lastWater) async {
     final index = _rooms.indexWhere((r) => r.id == roomId);
     if (index != -1) {
+      // Còn nợ hóa đơn thì phải xử lý trước, tránh trả cọc xong mới phát hiện
+      if (unpaidInvoicesOfRoom(roomId).isNotEmpty) {
+        throw StateError('unpaid_invoices');
+      }
       if (lastElec < _rooms[index].oldElectricity ||
           lastWater < _rooms[index].oldWater) {
         throw ArgumentError('Chỉ số cuối không được nhỏ hơn chỉ số cũ');
@@ -386,6 +469,7 @@ class RentalProvider extends ChangeNotifier {
 
   /// Thêm một thành viên CCCD mới vào phòng
   Future<void> addRoomMember(RoomMember member) async {
+    await _clearOtherRepresentatives(member);
     await DatabaseHelper.insertRoomMember(member);
     _cloudUpsert('room_members', member.toMap());
     await _refreshRoomMembersAndSync(member.roomId);
@@ -393,9 +477,24 @@ class RentalProvider extends ChangeNotifier {
 
   /// Cập nhật thông tin CCCD của thành viên
   Future<void> updateRoomMember(RoomMember member) async {
+    await _clearOtherRepresentatives(member);
     await DatabaseHelper.updateRoomMember(member);
     _cloudUpsert('room_members', member.toMap());
     await _refreshRoomMembersAndSync(member.roomId);
+  }
+
+  /// Mỗi phòng chỉ có 1 người đại diện hợp đồng: chọn người mới làm đại diện
+  /// thì bỏ đánh dấu đại diện của những người còn lại.
+  Future<void> _clearOtherRepresentatives(RoomMember member) async {
+    if (!member.isRepresentative) return;
+    final members = await DatabaseHelper.getRoomMembers(member.roomId);
+    for (final m in members) {
+      if (m.id != member.id && m.isRepresentative) {
+        final demoted = m.copyWith(isRepresentative: false);
+        await DatabaseHelper.updateRoomMember(demoted);
+        _cloudUpsert('room_members', demoted.toMap());
+      }
+    }
   }
 
   /// Xóa thành viên khỏi phòng
@@ -411,7 +510,8 @@ class RentalProvider extends ChangeNotifier {
     _roomMembersMap[roomId] = members;
 
     final index = _rooms.indexWhere((r) => r.id == roomId);
-    if (index != -1) {
+    // Phòng trống / bảo trì không có khách → không ghi tên khách lên phòng
+    if (index != -1 && _rooms[index].status == RoomStatus.occupied) {
       final room = _rooms[index];
       final occupantCount =
           members.isNotEmpty ? members.length : room.occupantCount;
@@ -508,6 +608,26 @@ class RentalProvider extends ChangeNotifier {
     _localWriteVersion++;
     SupabaseService.delete(table, column, value).then((_) => notifyListeners());
   }
+}
+
+/// Lỗi khi xóa phòng
+enum RoomDeleteError { occupied, hasUnpaidInvoices }
+
+class RoomDeleteException implements Exception {
+  final RoomDeleteError error;
+  const RoomDeleteException(this.error);
+
+  @override
+  String toString() => 'RoomDeleteException($error)';
+}
+
+/// Lỗi trùng tên phòng khi thêm / sửa phòng
+class RoomNameTakenException implements Exception {
+  final String name;
+  const RoomNameTakenException(this.name);
+
+  @override
+  String toString() => 'RoomNameTakenException($name)';
 }
 
 /// Các lỗi nghiệp vụ khi lập hóa đơn

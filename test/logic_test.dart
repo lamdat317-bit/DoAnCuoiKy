@@ -28,7 +28,7 @@ void main() {
 
       await reopened.logout();
       expect(await AuthProvider(prefs).login('lan@gmail.com', 'sai'),
-          'Mật khẩu không chính xác');
+          'err_wrong_password');
       expect(await AuthProvider(prefs).login('lan@gmail.com', 'matkhau1'),
           isNull);
     });

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/maintenance_request_model.dart';
 import '../../models/room_model.dart';
 import '../../providers/rental_provider.dart';
@@ -27,13 +28,13 @@ class _AddMaintenanceDialogState extends State<AddMaintenanceDialog> {
 
   Room? _selectedRoom;
 
-  final List<String> _sampleIssues = [
-    'Hỏng máy lạnh / Không mát',
-    'Nghẹt bồn rửa / Đường nước',
-    'Hỏng bóng đèn / Điện chập',
-    'Hỏng khóa cửa / Bản lề',
-    'Thấm nước trần nhà / Tường',
-    'Khác',
+  static const List<String> _sampleIssueKeys = [
+    'issue_ac',
+    'issue_sink',
+    'issue_light',
+    'issue_lock',
+    'issue_leak',
+    'issue_other',
   ];
 
   @override
@@ -54,11 +55,12 @@ class _AddMaintenanceDialogState extends State<AddMaintenanceDialog> {
   }
 
   void _submitForm() async {
+    final loc = context.loc;
     if (_formKey.currentState!.validate()) {
       if (_selectedRoom == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Vui lòng chọn phòng phát sinh sự cố'),
+          SnackBar(
+            content: Text(loc.t('maint_select_room_required')),
             backgroundColor: Colors.red,
           ),
         );
@@ -87,7 +89,7 @@ class _AddMaintenanceDialogState extends State<AddMaintenanceDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                'Đã gửi báo cáo sự cố "${req.title}" cho ${_selectedRoom!.name} thành công!'),
+                loc.t('maint_submitted', {'title': req.title, 'room': _selectedRoom!.name})),
             backgroundColor: Colors.orange.shade900,
             behavior: SnackBarBehavior.floating,
           ),
@@ -100,6 +102,7 @@ class _AddMaintenanceDialogState extends State<AddMaintenanceDialog> {
   Widget build(BuildContext context) {
     final provider = context.watch<RentalProvider>();
     final allRooms = provider.rooms;
+    final loc = context.loc;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -115,15 +118,15 @@ class _AddMaintenanceDialogState extends State<AddMaintenanceDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      CircleAvatar(
+                      const CircleAvatar(
                         backgroundColor: Color(0x1A3F51B5),
                         child: Icon(Icons.build, color: Color(0xFF3F51B5)),
                       ),
-                      SizedBox(width: 10),
+                      const SizedBox(width: 10),
                       Text(
-                        'Báo Sự Cố & Bảo Trì',
+                        loc.t('maint_dialog_title'),
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -143,14 +146,14 @@ class _AddMaintenanceDialogState extends State<AddMaintenanceDialog> {
               // Dropdown Chọn Phòng trọ
               DropdownButtonFormField<Room>(
                 initialValue: _selectedRoom,
-                decoration: const InputDecoration(
-                  labelText: 'Chọn phòng xảy ra sự cố *',
+                decoration: InputDecoration(
+                  labelText: loc.t('maint_room_label'),
                   prefixIcon: Icon(Icons.meeting_room),
                 ),
                 items: allRooms.map((room) {
                   return DropdownMenuItem<Room>(
                     value: room,
-                    child: Text('${room.name} (${room.status.displayName})'),
+                    child: Text('${room.name} (${loc.roomStatus(room.status)})'),
                   );
                 }).toList(),
                 onChanged: widget.preselectedRoom != null
@@ -161,22 +164,23 @@ class _AddMaintenanceDialogState extends State<AddMaintenanceDialog> {
                         });
                       },
                 validator: (val) {
-                  if (val == null) return 'Vui lòng chọn phòng';
+                  if (val == null) return loc.t('maint_select_room');
                   return null;
                 },
               ),
               const SizedBox(height: 12),
 
               // Gợi ý sự cố nhanh
-              const Text(
-                'Chọn mẫu sự cố nhanh:',
+              Text(
+                loc.t('maint_quick_samples'),
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
               ),
               const SizedBox(height: 6),
               Wrap(
                 spacing: 6,
                 runSpacing: 4,
-                children: _sampleIssues.map((issue) {
+                children: _sampleIssueKeys.map((key) {
+                  final issue = loc.t(key);
                   return ActionChip(
                     label: Text(issue, style: const TextStyle(fontSize: 11)),
                     onPressed: () {
@@ -193,14 +197,14 @@ class _AddMaintenanceDialogState extends State<AddMaintenanceDialog> {
               // Nhập Tên sự cố
               TextFormField(
                 controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Tên sự cố / Thiết bị hỏng *',
-                  hintText: 'Ví dụ: Hỏng máy lạnh, Nghẹt nước',
+                decoration: InputDecoration(
+                  labelText: loc.t('maint_title_label'),
+                  hintText: loc.t('maint_title_hint'),
                   prefixIcon: Icon(Icons.report_problem),
                 ),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
-                    return 'Vui lòng nhập tên sự cố';
+                    return loc.t('maint_title_required');
                   }
                   return null;
                 },
@@ -211,9 +215,9 @@ class _AddMaintenanceDialogState extends State<AddMaintenanceDialog> {
               TextFormField(
                 controller: _descController,
                 maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Mô tả chi tiết tình trạng',
-                  hintText: 'Máy lạnh chảy nước, mở không lạnh...',
+                decoration: InputDecoration(
+                  labelText: loc.t('maint_desc_label'),
+                  hintText: loc.t('maint_desc_hint'),
                   prefixIcon: Icon(Icons.notes),
                 ),
               ),
@@ -223,8 +227,8 @@ class _AddMaintenanceDialogState extends State<AddMaintenanceDialog> {
               TextFormField(
                 controller: _costController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Chi phí sửa chữa dự kiến (VNĐ)',
+                decoration: InputDecoration(
+                  labelText: loc.t('maint_est_cost_label'),
                   hintText: '0',
                   prefixIcon: Icon(Icons.attach_money),
                 ),
@@ -242,8 +246,8 @@ class _AddMaintenanceDialogState extends State<AddMaintenanceDialog> {
                   ),
                 ),
                 icon: const Icon(Icons.send, color: Colors.white),
-                label: const Text(
-                  'GỬI BÁO CÁO SỰ CỐ',
+                label: Text(
+                  loc.t('maint_submit_btn'),
                   style: TextStyle(
                       fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
                 ),

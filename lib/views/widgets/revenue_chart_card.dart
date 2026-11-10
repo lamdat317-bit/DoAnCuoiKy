@@ -1,24 +1,30 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../l10n/app_localizations.dart';
 
 class RevenueChartCard extends StatelessWidget {
-  final Map<String, double> monthlyStats;
+  /// Key = ngày đầu tháng, value = số tiền thực thu trong tháng
+  final Map<DateTime, double> monthlyStats;
 
   const RevenueChartCard({super.key, required this.monthlyStats});
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
     final currencyFormatter =
         NumberFormat.currency(locale: 'vi_VN', symbol: 'đ', decimalDigits: 0);
 
-    final labels = monthlyStats.keys.toList();
+    final labels =
+        monthlyStats.keys.map((m) => loc.monthShort(m.month)).toList();
     final values = monthlyStats.values.toList();
 
-    double maxVal = 10000000.0;
-    for (var v in values) {
-      if (v > maxVal) maxVal = v;
-    }
+    // Trục Y co giãn theo số liệu thật (làm tròn lên bội số 1 triệu),
+    // tránh cột bị "lùn" khi doanh thu nhỏ hơn mức cố định 10 triệu như trước.
+    final dataMax = values.fold(0.0, (m, v) => v > m ? v : m);
+    final maxY = dataMax <= 0
+        ? 1000000.0
+        : ((dataMax * 1.2) / 1000000).ceil() * 1000000.0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -39,19 +45,24 @@ class RevenueChartCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
-                children: [
-                  Icon(Icons.bar_chart, color: Color(0xFF3F51B5), size: 22),
-                  SizedBox(width: 8),
-                  Text(
-                    'Doanh thu 6 Tháng Gần Nhất',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF3F51B5),
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(Icons.bar_chart,
+                        color: Color(0xFF3F51B5), size: 22),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        loc.t('revenue_chart_title'),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF3F51B5),
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -70,13 +81,18 @@ class RevenueChartCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 4),
+          Text(
+            loc.t('revenue_chart_note'),
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 16),
           SizedBox(
             height: 180,
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
-                maxY: maxVal * 1.2,
+                maxY: maxY,
                 barTouchData: BarTouchData(
                   touchTooltipData: BarTouchTooltipData(
                     getTooltipColor: (_) => const Color(0xFF3F51B5),
@@ -104,12 +120,16 @@ class RevenueChartCard extends StatelessWidget {
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 36,
+                      reservedSize: 40,
+                      interval: maxY / 4,
                       getTitlesWidget: (value, meta) {
                         if (value == 0) return const SizedBox.shrink();
-                        final millions = (value / 1000000).toStringAsFixed(0);
+                        final millions = value / 1000000;
+                        final text = millions == millions.roundToDouble()
+                            ? millions.toStringAsFixed(0)
+                            : millions.toStringAsFixed(1);
                         return Text(
-                          '${millions}M',
+                          '${text}M',
                           style: TextStyle(
                             fontSize: 10,
                             color: Colors.grey.shade600,
@@ -143,7 +163,7 @@ class RevenueChartCard extends StatelessWidget {
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  horizontalInterval: (maxVal * 1.2) / 4,
+                  horizontalInterval: maxY / 4,
                   getDrawingHorizontalLine: (value) => FlLine(
                     color: Colors.grey.shade200,
                     strokeWidth: 1,

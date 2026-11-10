@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/invoice_model.dart';
+import '../models/maintenance_request_model.dart';
 import '../models/room_model.dart';
 
 class AppLocalizations {
@@ -257,6 +258,124 @@ class AppLocalizations {
       'status_maintenance': 'Bảo trì',
       'status_pending': 'Chưa thanh toán',
       'status_paid': 'Đã thanh toán',
+      'status_label': 'Trạng thái',
+      'maint_status_pending': 'Chờ xử lý',
+      'maint_status_in_progress': 'Đang sửa',
+      'maint_status_completed': 'Đã xong',
+      'maint_status_cancelled': 'Đã hủy',
+
+      // Dashboard (bổ sung)
+      'greeting': 'Xin chào, {name} 👋',
+      'role_line': 'Vai trò: {role}',
+      'tenant_line': 'Khách: {name}',
+      'occupants_line': 'Số người ở: {count} người',
+      'record_meter_btn': 'Chốt tiền điện nước',
+      'old_meter_line': 'Điện cũ: {elec} kWh | Nước cũ: {water} m³',
+      'room_ready_status': 'Trạng thái: Trống (Sẵn sàng cho thuê)',
+      'expected_revenue_desc': 'Hóa đơn đã lập trong tháng + tiền phòng & phí dịch vụ của phòng chưa chốt',
+      'collected_this_month': 'Đã thu tháng này: {amount}',
+      'revenue_chart_title': 'Thực thu 6 tháng gần nhất',
+      'revenue_chart_note': 'Tính theo ngày xác nhận thu tiền của hóa đơn',
+      'view_all': 'Xem tất cả',
+
+      // Room name validation
+      'room_name_exists': 'Tên phòng "{room}" đã tồn tại. Vui lòng nhập tên khác.',
+      'sample_short': 'Mẫu',
+
+      // Room card
+      'members_and_id': 'Thành viên & CCCD',
+      'report_maintenance': 'Báo sự cố bảo trì',
+      'members_short': 'Thành viên',
+      'maintenance_short': 'Bảo trì',
+
+      // Maintenance
+      'maintenance_title': 'Quản lý Sự cố & Bảo trì',
+      'maint_update_title': 'Cập nhật sự cố - {room}',
+      'maint_issue_name': 'Tên sự cố: {title}',
+      'maint_status_label': 'Trạng thái xử lý',
+      'maint_cost_label': 'Chi phí sửa chữa (VNĐ)',
+      'save_changes': 'Lưu thay đổi',
+      'maint_updated': 'Đã cập nhật sự cố {title}',
+      'maint_delete_title': 'Xóa sự cố',
+      'maint_delete_confirm': 'Bạn có chắc chắn muốn xóa sự cố "{title}" không?',
+      'maint_deleted': 'Đã xóa báo cáo sự cố',
+      'maint_pending_header': 'SỰ CỐ CẦN XỬ LÝ',
+      'maint_requests_count': '{count} yêu cầu',
+      'maint_total_cost': 'TỔNG CHI PHÍ BẢO TRÌ',
+      'maint_empty': 'Chưa có báo cáo sự cố nào',
+      'maint_update_menu': 'Cập nhật tiến độ / Chi phí',
+      'maint_delete_menu': 'Xóa báo cáo',
+      'maint_reported_at': 'Báo lúc: {date}',
+      'maint_cost_line': 'Chi phí: {amount}',
+      'maint_new_btn': 'Báo sự cố mới',
+      'maint_dialog_title': 'Báo Sự Cố & Bảo Trì',
+      'maint_select_room_required': 'Vui lòng chọn phòng phát sinh sự cố',
+      'maint_room_label': 'Chọn phòng xảy ra sự cố *',
+      'maint_select_room': 'Vui lòng chọn phòng',
+      'maint_quick_samples': 'Chọn mẫu sự cố nhanh:',
+      'maint_title_label': 'Tên sự cố / Thiết bị hỏng *',
+      'maint_title_hint': 'Ví dụ: Hỏng máy lạnh, Nghẹt nước',
+      'maint_title_required': 'Vui lòng nhập tên sự cố',
+      'maint_desc_label': 'Mô tả chi tiết tình trạng',
+      'maint_desc_hint': 'Máy lạnh chảy nước, mở không lạnh...',
+      'maint_est_cost_label': 'Chi phí sửa chữa dự kiến (VNĐ)',
+      'maint_submit_btn': 'GỬI BÁO CÁO SỰ CỐ',
+      'maint_submitted': 'Đã gửi báo cáo sự cố "{title}" cho {room} thành công!',
+      'issue_ac': 'Hỏng máy lạnh / Không mát',
+      'issue_sink': 'Nghẹt bồn rửa / Đường nước',
+      'issue_light': 'Hỏng bóng đèn / Điện chập',
+      'issue_lock': 'Hỏng khóa cửa / Bản lề',
+      'issue_leak': 'Thấm nước trần nhà / Tường',
+      'issue_other': 'Khác',
+
+      // Room members
+      'members_title': 'Thành viên {room}',
+      'members_subtitle': 'Danh sách đăng ký CCCD / CMND',
+      'members_empty': 'Chưa có thành viên nào được đăng ký CCCD',
+      'members_empty_hint': 'Bấm nút bên dưới để thêm thành viên mới',
+      'contract_representative': 'Đại diện hợp đồng',
+      'id_card_line': 'CCCD/CMND: {id}',
+      'edit_action': 'Chỉnh sửa',
+      'hometown_line': 'Quê: {place}',
+      'add_member_btn': 'THÊM THÀNH VIÊN CCCD',
+      'pick_birth_date_title': 'CHỌN NGÀY SINH',
+      'member_updated': 'Cập nhật thông tin {name} thành công!',
+      'member_added': 'Đã thêm {name} vào danh sách CCCD thành công!',
+      'edit_member_title': 'Chỉnh sửa thông tin CCCD',
+      'add_member_title': 'Thêm thành viên CCCD',
+      'member_name_required': 'Vui lòng nhập họ và tên',
+      'id_card_label': 'Số CCCD / CMND',
+      'id_card_required': 'Vui lòng nhập số CCCD hoặc CMND',
+      'id_card_invalid': 'Số CCCD/CMND phải bao gồm 9 hoặc 12 chữ số',
+      'phone_label': 'Số điện thoại',
+      'birth_date': 'Ngày sinh',
+      'pick_birth_date': 'Chọn ngày sinh',
+      'hometown_label': 'Quê quán / Thường trú',
+      'hometown_hint': 'Hà Nội, Nam Định, ...',
+      'is_representative': 'Là người đại diện hợp đồng thuê phòng',
+      'is_representative_desc': 'Tên và SĐT của người đại diện sẽ được đồng bộ lên thông tin phòng',
+      'update_info_btn': 'CẬP NHẬT THÔNG TIN',
+      'save_member_btn': 'LƯU THÀNH VIÊN CCCD',
+
+      // Auth errors
+      'err_enter_email': 'Vui lòng nhập Email hoặc tên đăng nhập',
+      'err_enter_password': 'Vui lòng nhập mật khẩu',
+      'err_account_not_found': 'Tài khoản không tồn tại. Vui lòng đăng ký trước.',
+      'err_wrong_password': 'Mật khẩu không chính xác',
+      'err_enter_name': 'Vui lòng nhập họ và tên',
+      'err_email_taken': 'Email này đã được đăng ký tài khoản',
+      'err_not_logged_in': 'Chưa đăng nhập',
+      'err_current_pass_wrong': 'Mật khẩu hiện tại không đúng',
+
+      // Business rules
+      'room_occupied_cannot_delete': 'Không thể xóa {room} khi đang có khách thuê. Hãy làm thủ tục trả phòng trước.',
+      'room_unpaid_cannot_delete': 'Không thể xóa {room}: phòng còn {count} hóa đơn chưa thu.',
+      'checkout_unpaid_block': '{room} còn {count} hóa đơn chưa thu ({amount}). Hãy thu tiền hoặc xử lý hóa đơn trước khi trả phòng.',
+      'use_checkout_to_release': 'Phòng đang có khách. Hãy dùng "Trả phòng & Quyết toán cọc" để đưa phòng về trạng thái khác.',
+      'use_edit_to_rent': 'Để cho thuê, hãy dùng "Sửa thông tin" và nhập thông tin khách thuê.',
+      'checkout_before_checkin': 'Ngày trả phòng phải sau ngày vào ở',
+      'occupants_min': 'Số người ở phải từ 1 trở lên',
+      'id_card_duplicate': 'Số CCCD/CMND này đã có trong phòng',
     },
     'en': {
       // General
@@ -491,6 +610,124 @@ class AppLocalizations {
       'status_maintenance': 'Maintenance',
       'status_pending': 'Unpaid',
       'status_paid': 'Paid',
+      'status_label': 'Status',
+      'maint_status_pending': 'Pending',
+      'maint_status_in_progress': 'In Progress',
+      'maint_status_completed': 'Completed',
+      'maint_status_cancelled': 'Cancelled',
+
+      // Dashboard (extra)
+      'greeting': 'Hello, {name} 👋',
+      'role_line': 'Role: {role}',
+      'tenant_line': 'Tenant: {name}',
+      'occupants_line': 'Occupants: {count}',
+      'record_meter_btn': 'Record Meters & Bill',
+      'old_meter_line': 'Prev. electricity: {elec} kWh | Prev. water: {water} m³',
+      'room_ready_status': 'Status: Available (ready to rent)',
+      'expected_revenue_desc': 'Invoices issued this month + rent & service fee of rooms not yet billed',
+      'collected_this_month': 'Collected this month: {amount}',
+      'revenue_chart_title': 'Collected Revenue – Last 6 Months',
+      'revenue_chart_note': 'Based on the date each invoice was marked as paid',
+      'view_all': 'View all',
+
+      // Room name validation
+      'room_name_exists': 'Room name "{room}" already exists. Please choose another name.',
+      'sample_short': 'Samples',
+
+      // Room card
+      'members_and_id': 'Members & ID Cards',
+      'report_maintenance': 'Report Maintenance Issue',
+      'members_short': 'Members',
+      'maintenance_short': 'Maintenance',
+
+      // Maintenance
+      'maintenance_title': 'Issues & Maintenance',
+      'maint_update_title': 'Update Issue - {room}',
+      'maint_issue_name': 'Issue: {title}',
+      'maint_status_label': 'Progress Status',
+      'maint_cost_label': 'Repair Cost (VND)',
+      'save_changes': 'Save Changes',
+      'maint_updated': 'Issue "{title}" updated',
+      'maint_delete_title': 'Delete Issue',
+      'maint_delete_confirm': 'Are you sure you want to delete the issue "{title}"?',
+      'maint_deleted': 'Issue report deleted',
+      'maint_pending_header': 'OPEN ISSUES',
+      'maint_requests_count': '{count} requests',
+      'maint_total_cost': 'TOTAL MAINTENANCE COST',
+      'maint_empty': 'No issue reports yet',
+      'maint_update_menu': 'Update Progress / Cost',
+      'maint_delete_menu': 'Delete Report',
+      'maint_reported_at': 'Reported: {date}',
+      'maint_cost_line': 'Cost: {amount}',
+      'maint_new_btn': 'Report New Issue',
+      'maint_dialog_title': 'Report Issue & Maintenance',
+      'maint_select_room_required': 'Please select the room with the issue',
+      'maint_room_label': 'Room with the issue *',
+      'maint_select_room': 'Please select a room',
+      'maint_quick_samples': 'Quick issue templates:',
+      'maint_title_label': 'Issue / Broken Equipment *',
+      'maint_title_hint': 'e.g. Broken AC, Clogged drain',
+      'maint_title_required': 'Please enter the issue name',
+      'maint_desc_label': 'Detailed Description',
+      'maint_desc_hint': 'AC is leaking water and not cooling...',
+      'maint_est_cost_label': 'Estimated Repair Cost (VND)',
+      'maint_submit_btn': 'SUBMIT ISSUE REPORT',
+      'maint_submitted': 'Issue "{title}" reported for {room} successfully!',
+      'issue_ac': 'Broken AC / Not cooling',
+      'issue_sink': 'Clogged sink / Water pipe',
+      'issue_light': 'Broken light / Short circuit',
+      'issue_lock': 'Broken door lock / Hinge',
+      'issue_leak': 'Ceiling / Wall leak',
+      'issue_other': 'Other',
+
+      // Room members
+      'members_title': 'Members of {room}',
+      'members_subtitle': 'Registered ID Card List',
+      'members_empty': 'No members registered yet',
+      'members_empty_hint': 'Tap the button below to add a new member',
+      'contract_representative': 'Contract Representative',
+      'id_card_line': 'ID Card: {id}',
+      'edit_action': 'Edit',
+      'hometown_line': 'Hometown: {place}',
+      'add_member_btn': 'ADD MEMBER',
+      'pick_birth_date_title': 'SELECT DATE OF BIRTH',
+      'member_updated': 'Updated {name} successfully!',
+      'member_added': 'Added {name} to the member list successfully!',
+      'edit_member_title': 'Edit Member ID Info',
+      'add_member_title': 'Add Member',
+      'member_name_required': 'Please enter the full name',
+      'id_card_label': 'ID Card Number',
+      'id_card_required': 'Please enter the ID card number',
+      'id_card_invalid': 'ID card number must have 9 or 12 digits',
+      'phone_label': 'Phone Number',
+      'birth_date': 'Date of Birth',
+      'pick_birth_date': 'Select date of birth',
+      'hometown_label': 'Hometown / Permanent Address',
+      'hometown_hint': 'Hanoi, Nam Dinh, ...',
+      'is_representative': 'Is the contract representative',
+      'is_representative_desc': "The representative's name and phone will be synced to the room info",
+      'update_info_btn': 'UPDATE INFO',
+      'save_member_btn': 'SAVE MEMBER',
+
+      // Auth errors
+      'err_enter_email': 'Please enter your email or username',
+      'err_enter_password': 'Please enter your password',
+      'err_account_not_found': 'Account does not exist. Please register first.',
+      'err_wrong_password': 'Incorrect password',
+      'err_enter_name': 'Please enter your full name',
+      'err_email_taken': 'This email is already registered',
+      'err_not_logged_in': 'Not logged in',
+      'err_current_pass_wrong': 'Current password is incorrect',
+
+      // Business rules
+      'room_occupied_cannot_delete': 'Cannot delete {room} while it is rented. Please check the tenant out first.',
+      'room_unpaid_cannot_delete': 'Cannot delete {room}: it still has {count} unpaid invoices.',
+      'checkout_unpaid_block': '{room} still has {count} unpaid invoices ({amount}). Collect payment or resolve them before check-out.',
+      'use_checkout_to_release': 'This room is rented. Use "Check-out & Deposit Settlement" to change its status.',
+      'use_edit_to_rent': 'To rent this room, use "Edit Info" and enter the tenant details.',
+      'checkout_before_checkin': 'Check-out date must be after the check-in date',
+      'occupants_min': 'Number of occupants must be at least 1',
+      'id_card_duplicate': 'This ID card number already exists in this room',
     },
     'zh': {
       // General
@@ -602,7 +839,7 @@ class AppLocalizations {
       'delete_room_confirm_title': '删除房源',
       'delete_room_confirm_msg': '您确定要删除 {room} 吗？该房源数据将从系统中永久删除。',
       'delete_room_success': '已成功删除 {room}',
-      'delete_now': '静止删除',
+      'delete_now': '立即删除',
       'delete_invoice': '删除账单',
       'delete_invoice_confirm_title': '删除账单',
       'delete_invoice_confirm_msg': '您确定要删除 {room} 的账单吗？该记录将被永久删除。',
@@ -725,6 +962,124 @@ class AppLocalizations {
       'status_maintenance': '维护中',
       'status_pending': '未支付',
       'status_paid': '已支付',
+      'status_label': '状态',
+      'maint_status_pending': '待处理',
+      'maint_status_in_progress': '维修中',
+      'maint_status_completed': '已完成',
+      'maint_status_cancelled': '已取消',
+
+      // Dashboard (extra)
+      'greeting': '你好，{name} 👋',
+      'role_line': '角色：{role}',
+      'tenant_line': '租客：{name}',
+      'occupants_line': '入住人数：{count} 人',
+      'record_meter_btn': '抄表并计费',
+      'old_meter_line': '上期电表：{elec} kWh | 上期水表：{water} m³',
+      'room_ready_status': '状态：空闲（可出租）',
+      'expected_revenue_desc': '本月已开账单 + 未结算房间的租金与服务费',
+      'collected_this_month': '本月已收：{amount}',
+      'revenue_chart_title': '近6个月实收金额',
+      'revenue_chart_note': '按账单确认收款的日期统计',
+      'view_all': '查看全部',
+
+      // Room name validation
+      'room_name_exists': '房间名称 "{room}" 已存在，请使用其他名称。',
+      'sample_short': '样板',
+
+      // Room card
+      'members_and_id': '成员与身份证',
+      'report_maintenance': '报修',
+      'members_short': '成员',
+      'maintenance_short': '维修',
+
+      // Maintenance
+      'maintenance_title': '故障与维修管理',
+      'maint_update_title': '更新故障 - {room}',
+      'maint_issue_name': '故障名称：{title}',
+      'maint_status_label': '处理状态',
+      'maint_cost_label': '维修费用 (越南盾)',
+      'save_changes': '保存更改',
+      'maint_updated': '已更新故障 {title}',
+      'maint_delete_title': '删除故障',
+      'maint_delete_confirm': '您确定要删除故障 "{title}" 吗？',
+      'maint_deleted': '已删除故障报告',
+      'maint_pending_header': '待处理故障',
+      'maint_requests_count': '{count} 条请求',
+      'maint_total_cost': '维修总费用',
+      'maint_empty': '暂无故障报告',
+      'maint_update_menu': '更新进度 / 费用',
+      'maint_delete_menu': '删除报告',
+      'maint_reported_at': '报修时间：{date}',
+      'maint_cost_line': '费用：{amount}',
+      'maint_new_btn': '新建报修',
+      'maint_dialog_title': '故障报修与维护',
+      'maint_select_room_required': '请选择发生故障的房间',
+      'maint_room_label': '选择故障房间 *',
+      'maint_select_room': '请选择房间',
+      'maint_quick_samples': '快速选择故障类型：',
+      'maint_title_label': '故障名称 / 损坏设备 *',
+      'maint_title_hint': '例如：空调损坏、下水道堵塞',
+      'maint_title_required': '请输入故障名称',
+      'maint_desc_label': '详细描述',
+      'maint_desc_hint': '空调漏水、不制冷...',
+      'maint_est_cost_label': '预计维修费用 (越南盾)',
+      'maint_submit_btn': '提交故障报告',
+      'maint_submitted': '已成功为 {room} 提交故障 "{title}"！',
+      'issue_ac': '空调损坏 / 不制冷',
+      'issue_sink': '水槽堵塞 / 水管故障',
+      'issue_light': '灯泡损坏 / 电路短路',
+      'issue_lock': '门锁 / 合页损坏',
+      'issue_leak': '天花板 / 墙面渗水',
+      'issue_other': '其他',
+
+      // Room members
+      'members_title': '{room} 成员',
+      'members_subtitle': '身份证登记名单',
+      'members_empty': '尚未登记任何成员',
+      'members_empty_hint': '点击下方按钮添加新成员',
+      'contract_representative': '合同代表人',
+      'id_card_line': '身份证：{id}',
+      'edit_action': '编辑',
+      'hometown_line': '籍贯：{place}',
+      'add_member_btn': '添加成员',
+      'pick_birth_date_title': '选择出生日期',
+      'member_updated': '已成功更新 {name} 的信息！',
+      'member_added': '已成功添加 {name}！',
+      'edit_member_title': '编辑成员身份证信息',
+      'add_member_title': '添加成员',
+      'member_name_required': '请输入姓名',
+      'id_card_label': '身份证号码',
+      'id_card_required': '请输入身份证号码',
+      'id_card_invalid': '身份证号码必须为9位或12位数字',
+      'phone_label': '电话号码',
+      'birth_date': '出生日期',
+      'pick_birth_date': '选择出生日期',
+      'hometown_label': '籍贯 / 常住地址',
+      'hometown_hint': '河内、南定...',
+      'is_representative': '是租房合同代表人',
+      'is_representative_desc': '代表人的姓名和电话将同步到房间信息',
+      'update_info_btn': '更新信息',
+      'save_member_btn': '保存成员',
+
+      // Auth errors
+      'err_enter_email': '请输入邮箱或用户名',
+      'err_enter_password': '请输入密码',
+      'err_account_not_found': '账户不存在，请先注册。',
+      'err_wrong_password': '密码错误',
+      'err_enter_name': '请输入姓名',
+      'err_email_taken': '该邮箱已被注册',
+      'err_not_logged_in': '尚未登录',
+      'err_current_pass_wrong': '当前密码不正确',
+
+      // Business rules
+      'room_occupied_cannot_delete': '{room} 正在出租中，无法删除。请先办理退房。',
+      'room_unpaid_cannot_delete': '无法删除 {room}：仍有 {count} 笔未支付账单。',
+      'checkout_unpaid_block': '{room} 仍有 {count} 笔未支付账单（{amount}）。请先收款或处理账单再办理退房。',
+      'use_checkout_to_release': '该房间正在出租中，请使用“退房与押金清算”来更改状态。',
+      'use_edit_to_rent': '如需出租，请使用“修改信息”并填写租客信息。',
+      'checkout_before_checkin': '退房日期必须晚于入住日期',
+      'occupants_min': '入住人数至少为1人',
+      'id_card_duplicate': '该身份证号码已在本房间登记',
     },
   };
 
@@ -901,6 +1256,7 @@ class AppLocalizations {
   String get samplePhotos => t('sample_photos');
   String get saveRoomBtn => t('save_room_btn');
   String get roomSavedSuccess => t('room_saved_success');
+  String roomNameExists(String room) => t('room_name_exists', {'room': room});
 
   // Billing
   String billingForRoom(String room) =>
@@ -1004,6 +1360,36 @@ class AppLocalizations {
         return t('status_pending');
       case InvoiceStatus.paid:
         return t('status_paid');
+    }
+  }
+
+  String maintenanceStatus(MaintenanceStatus status) {
+    switch (status) {
+      case MaintenanceStatus.pending:
+        return t('maint_status_pending');
+      case MaintenanceStatus.inProgress:
+        return t('maint_status_in_progress');
+      case MaintenanceStatus.completed:
+        return t('maint_status_completed');
+      case MaintenanceStatus.cancelled:
+        return t('maint_status_cancelled');
+    }
+  }
+
+  static const _enMonths = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+
+  /// Nhãn tháng ngắn cho biểu đồ (T5 / May / 5月)
+  String monthShort(int month) {
+    switch (languageCode) {
+      case 'en':
+        return _enMonths[month - 1];
+      case 'zh':
+        return '$month月';
+      default:
+        return 'T$month';
     }
   }
 }

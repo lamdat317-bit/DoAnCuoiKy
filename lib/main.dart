@@ -50,7 +50,7 @@ class RentalManagementApp extends StatelessWidget {
     final settings = context.watch<SettingsProvider>();
 
     return MaterialApp(
-      title: 'Quản lý Phòng trọ',
+      onGenerateTitle: (ctx) => AppLocalizations.of(ctx)?.appTitle ?? 'Rental',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

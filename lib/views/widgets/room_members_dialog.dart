@@ -110,6 +110,7 @@ class _RoomMembersDialogState extends State<RoomMembersDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
     final dateFormat = DateFormat('dd/MM/yyyy');
 
     return Dialog(
@@ -137,7 +138,7 @@ class _RoomMembersDialogState extends State<RoomMembersDialog> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Thành viên ${widget.room.name}',
+                              loc.t('members_title', {'room': widget.room.name}),
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -146,7 +147,7 @@ class _RoomMembersDialogState extends State<RoomMembersDialog> {
                               overflow: TextOverflow.ellipsis,
                             ),
                             Text(
-                              'Danh sách đăng ký CCCD / CMND',
+                              loc.t('members_subtitle'),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey.shade600,
@@ -181,7 +182,7 @@ class _RoomMembersDialogState extends State<RoomMembersDialog> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'Chưa có thành viên nào được đăng ký CCCD',
+                            loc.t('members_empty'),
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey.shade600,
@@ -189,7 +190,7 @@ class _RoomMembersDialogState extends State<RoomMembersDialog> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Bấm nút bên dưới để thêm thành viên mới',
+                            loc.t('members_empty_hint'),
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey.shade500,
@@ -273,8 +274,8 @@ class _RoomMembersDialogState extends State<RoomMembersDialog> {
                                                           6,
                                                         ),
                                                   ),
-                                                  child: const Text(
-                                                    'Đại diện hợp đồng',
+                                                  child: Text(
+                                                    loc.t('contract_representative'),
                                                     style: TextStyle(
                                                       fontSize: 10,
                                                       fontWeight:
@@ -288,7 +289,7 @@ class _RoomMembersDialogState extends State<RoomMembersDialog> {
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            'CCCD/CMND: ${m.idCard}',
+                                            loc.t('id_card_line', {'id': m.idCard}),
                                             style: const TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.w600,
@@ -312,33 +313,33 @@ class _RoomMembersDialogState extends State<RoomMembersDialog> {
                                         }
                                       },
                                       itemBuilder: (ctx) => [
-                                        const PopupMenuItem<String>(
+                                        PopupMenuItem<String>(
                                           value: 'edit',
                                           child: Row(
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.edit,
                                                 size: 18,
                                                 color: Color(0xFF3F51B5),
                                               ),
-                                              SizedBox(width: 8),
-                                              Text('Chỉnh sửa'),
+                                              const SizedBox(width: 8),
+                                              Text(loc.t('edit_action')),
                                             ],
                                           ),
                                         ),
-                                        const PopupMenuItem<String>(
+                                        PopupMenuItem<String>(
                                           value: 'delete',
                                           child: Row(
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.delete,
                                                 size: 18,
                                                 color: Colors.red,
                                               ),
-                                              SizedBox(width: 8),
+                                              const SizedBox(width: 8),
                                               Text(
-                                                'Xóa thành viên',
-                                                style: TextStyle(
+                                                loc.deleteMemberTitle,
+                                                style: const TextStyle(
                                                   color: Colors.red,
                                                 ),
                                               ),
@@ -402,7 +403,7 @@ class _RoomMembersDialogState extends State<RoomMembersDialog> {
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
-                                            'Quê: ${m.hometown}',
+                                            loc.t('hometown_line', {'place': m.hometown ?? ''}),
                                             style: const TextStyle(
                                               fontSize: 12,
                                             ),
@@ -430,8 +431,8 @@ class _RoomMembersDialogState extends State<RoomMembersDialog> {
                 ),
               ),
               icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text(
-                'THÊM THÀNH VIÊN CCCD',
+              label: Text(
+                loc.t('add_member_btn'),
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
@@ -496,13 +497,14 @@ class _AddEditMemberSubDialogState extends State<AddEditMemberSubDialog> {
   }
 
   Future<void> _selectDob(BuildContext context) async {
+    final loc = context.loc;
     final picked = await showDatePicker(
       context: context,
       initialDate: _dateOfBirth ?? DateTime(2000, 1, 1),
       firstDate: DateTime(1940),
       lastDate: DateTime.now(),
-      locale: const Locale('vi', 'VN'),
-      helpText: 'CHỌN NGÀY SINH',
+      locale: Localizations.localeOf(context),
+      helpText: loc.t('pick_birth_date_title'),
     );
     if (picked != null) {
       setState(() {
@@ -512,6 +514,7 @@ class _AddEditMemberSubDialogState extends State<AddEditMemberSubDialog> {
   }
 
   void _saveMember() async {
+    final loc = context.loc;
     if (_formKey.currentState!.validate()) {
       final name = _nameController.text.trim();
       final idCard = _idCardController.text.trim();
@@ -548,8 +551,8 @@ class _AddEditMemberSubDialogState extends State<AddEditMemberSubDialog> {
           SnackBar(
             content: Text(
               isEditing
-                  ? 'Cập nhật thông tin $name thành công!'
-                  : 'Đã thêm $name vào danh sách CCCD thành công!',
+                  ? loc.t('member_updated', {'name': name})
+                  : loc.t('member_added', {'name': name}),
             ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
@@ -561,6 +564,7 @@ class _AddEditMemberSubDialogState extends State<AddEditMemberSubDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
     final isEditing = widget.memberToEdit != null;
 
     return Dialog(
@@ -578,8 +582,8 @@ class _AddEditMemberSubDialogState extends State<AddEditMemberSubDialog> {
                 children: [
                   Text(
                     isEditing
-                        ? 'Chỉnh sửa thông tin CCCD'
-                        : 'Thêm thành viên CCCD',
+                        ? loc.t('edit_member_title')
+                        : loc.t('add_member_title'),
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -597,14 +601,14 @@ class _AddEditMemberSubDialogState extends State<AddEditMemberSubDialog> {
               TextFormField(
                 controller: _nameController,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Họ và tên *',
+                decoration: InputDecoration(
+                  labelText: '${loc.fullName} *',
                   hintText: 'Nguyễn Văn A',
                   prefixIcon: Icon(Icons.person),
                 ),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
-                    return 'Vui lòng nhập họ và tên';
+                    return loc.t('member_name_required');
                   }
                   return null;
                 },
@@ -613,19 +617,27 @@ class _AddEditMemberSubDialogState extends State<AddEditMemberSubDialog> {
               TextFormField(
                 controller: _idCardController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Số CCCD / CMND *',
+                decoration: InputDecoration(
+                  labelText: '${loc.t('id_card_label')} *',
                   hintText: '034099001234',
                   prefixIcon: Icon(Icons.badge),
                 ),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
-                    return 'Vui lòng nhập số CCCD hoặc CMND';
+                    return loc.t('id_card_required');
                   }
                   final clean = val.trim();
-                  if (clean.length != 9 && clean.length != 12) {
-                    return 'Số CCCD/CMND phải bao gồm 9 hoặc 12 chữ số';
+                  // Phải toàn chữ số (trước đây "abcdefghi" vẫn lọt qua)
+                  if (!RegExp(r'^(\d{9}|\d{12})$').hasMatch(clean)) {
+                    return loc.t('id_card_invalid');
                   }
+                  final duplicated = context
+                      .read<RentalProvider>()
+                      .getCachedRoomMembers(widget.roomId)
+                      .any((m) =>
+                          m.idCard == clean &&
+                          m.id != widget.memberToEdit?.id);
+                  if (duplicated) return loc.t('id_card_duplicate');
                   return null;
                 },
               ),
@@ -633,8 +645,8 @@ class _AddEditMemberSubDialogState extends State<AddEditMemberSubDialog> {
               TextFormField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Số điện thoại',
+                decoration: InputDecoration(
+                  labelText: loc.t('phone_label'),
                   hintText: '0901234567',
                   prefixIcon: Icon(Icons.phone),
                 ),
@@ -666,8 +678,8 @@ class _AddEditMemberSubDialogState extends State<AddEditMemberSubDialog> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'Ngày sinh',
+                                Text(
+                                  loc.t('birth_date'),
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: Colors.grey,
@@ -676,7 +688,7 @@ class _AddEditMemberSubDialogState extends State<AddEditMemberSubDialog> {
                                 Text(
                                   _dateOfBirth != null
                                       ? _dateFormat.format(_dateOfBirth!)
-                                      : 'Chọn ngày sinh',
+                                      : loc.t('pick_birth_date'),
                                   style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
@@ -694,9 +706,9 @@ class _AddEditMemberSubDialogState extends State<AddEditMemberSubDialog> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _hometownController,
-                decoration: const InputDecoration(
-                  labelText: 'Quê quán / Thường trú',
-                  hintText: 'Hà Nội, Nam Định, ...',
+                decoration: InputDecoration(
+                  labelText: loc.t('hometown_label'),
+                  hintText: loc.t('hometown_hint'),
                   prefixIcon: Icon(Icons.home_work),
                 ),
               ),
@@ -705,12 +717,12 @@ class _AddEditMemberSubDialogState extends State<AddEditMemberSubDialog> {
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
                 activeColor: const Color(0xFF3F51B5),
-                title: const Text(
-                  'Là người đại diện hợp đồng thuê phòng',
+                title: Text(
+                  loc.t('is_representative'),
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                 ),
-                subtitle: const Text(
-                  'Tên và SĐT của người đại diện sẽ được đồng bộ lên thông tin phòng',
+                subtitle: Text(
+                  loc.t('is_representative_desc'),
                   style: TextStyle(fontSize: 11, color: Colors.grey),
                 ),
                 value: _isRepresentative,
@@ -735,7 +747,7 @@ class _AddEditMemberSubDialogState extends State<AddEditMemberSubDialog> {
                   color: Colors.white,
                 ),
                 label: Text(
-                  isEditing ? 'CẬP NHẬT THÔNG TIN' : 'LƯU THÀNH VIÊN CCCD',
+                  isEditing ? loc.t('update_info_btn') : loc.t('save_member_btn'),
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
