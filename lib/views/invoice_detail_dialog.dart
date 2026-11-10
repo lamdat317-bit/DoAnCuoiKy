@@ -38,6 +38,48 @@ ${loc.thankYou}
     Share.share(shareText, subject: loc.invoiceShareSubject(invoice.roomName));
   }
 
+  void _confirmDeleteInvoice(BuildContext context) {
+    final loc = context.loc;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.delete_forever, color: Colors.red),
+            const SizedBox(width: 8),
+            Text(loc.deleteInvoiceConfirmTitle),
+          ],
+        ),
+        content: Text(loc.deleteInvoiceConfirmMsg(invoice.roomName)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(loc.cancel),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              Navigator.pop(context);
+              await context.read<RentalProvider>().deleteInvoice(invoice.id);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(loc.deleteInvoiceSuccess),
+                    backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            child: Text(loc.deleteNow, style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = context.loc;
@@ -184,6 +226,11 @@ ${loc.thankYou}
         ),
       ),
       actions: [
+        IconButton(
+          icon: const Icon(Icons.delete_outline, color: Colors.red),
+          tooltip: loc.deleteInvoice,
+          onPressed: () => _confirmDeleteInvoice(context),
+        ),
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: Text(loc.close),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/room_member_model.dart';
 import '../../models/room_model.dart';
 import '../../providers/rental_provider.dart';
@@ -53,24 +54,25 @@ class _RoomMembersDialogState extends State<RoomMembersDialog> {
   }
 
   void _confirmDeleteMember(RoomMember member) {
+    final loc = context.loc;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.delete_forever, color: Colors.red),
-            SizedBox(width: 8),
-            Text('Xóa thành viên'),
+            const Icon(Icons.delete_forever, color: Colors.red),
+            const SizedBox(width: 8),
+            Text(loc.deleteMemberTitle),
           ],
         ),
         content: Text(
-          'Bạn có chắc chắn muốn xóa thành viên "${member.name}" (CCCD: ${member.idCard}) khỏi ${widget.room.name} không?',
+          loc.deleteMemberConfirmMsg(member.name, member.idCard, widget.room.name),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Hủy'),
+            child: Text(loc.cancel),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -83,14 +85,14 @@ class _RoomMembersDialogState extends State<RoomMembersDialog> {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Đã xóa thành viên ${member.name}'),
+                    content: Text(loc.deleteMemberSuccess(member.name)),
                     backgroundColor: Colors.red,
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
               }
             },
-            child: const Text('Xóa ngay', style: TextStyle(color: Colors.white)),
+            child: Text(loc.deleteNow, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),

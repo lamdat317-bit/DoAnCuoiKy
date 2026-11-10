@@ -11,10 +11,9 @@ import '../models/room_model.dart';
 /// Tự động đồng bộ 2 chiều (Cloud <-> SQLite Local) khi có kết nối mạng.
 /// ============================================================================
 class SupabaseService {
-  // URL và AnonKey mẫu cho Supabase Project (Có thể thay thế bằng của bạn)
-  static const String supabaseUrl = 'https://xyzcompany.supabase.co';
-  static const String supabaseAnonKey =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5emNvbXBhbnkiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTY3MDAwMDAwMCwiZXhwIjoyMDAwMDAwMDAwfQ.demo_key_supabase';
+  // URL và AnonKey cho Supabase Project
+  static const String supabaseUrl = 'https://lxhywbwcmwqpvqcjiisb.supabase.co';
+  static const String supabaseAnonKey = 'sb_publishable_tWXp9K8hKE5k6HbQp4Kw0A_fKwNuf5V';
 
   static bool _isInitialized = false;
 

@@ -204,6 +204,13 @@ class RentalProvider extends ChangeNotifier {
     }
   }
 
+  /// Xóa hóa đơn khỏi hệ thống & CSDL SQLite
+  Future<void> deleteInvoice(String invoiceId) async {
+    _invoices.removeWhere((inv) => inv.id == invoiceId);
+    notifyListeners();
+    await DatabaseHelper.deleteInvoice(invoiceId);
+  }
+
   /// Trả phòng & Thanh lý hợp đồng (Khấu trừ cọc và đưa phòng về trạng thái Trống)
   Future<void> checkoutRoom(String roomId, int lastElec, int lastWater) async {
     final index = _rooms.indexWhere((r) => r.id == roomId);

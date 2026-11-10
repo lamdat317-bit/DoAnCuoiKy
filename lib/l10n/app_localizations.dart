@@ -135,6 +135,13 @@ class AppLocalizations {
       'delete_room_confirm_msg': 'Bạn có chắc chắn muốn xóa {room}? Dữ liệu phòng trọ này sẽ bị xóa vĩnh viễn khỏi hệ thống.',
       'delete_room_success': 'Đã xóa {room} thành công',
       'delete_now': 'Xóa ngay',
+      'delete_invoice': 'Xóa hóa đơn',
+      'delete_invoice_confirm_title': 'Xóa hóa đơn',
+      'delete_invoice_confirm_msg': 'Bạn có chắc chắn muốn xóa hóa đơn của {room}? Bản ghi này sẽ bị xóa vĩnh viễn khỏi hệ thống.',
+      'delete_invoice_success': 'Đã xóa hóa đơn thành công',
+      'delete_member_title': 'Xóa thành viên',
+      'delete_member_confirm_msg': 'Bạn có chắc chắn muốn xóa thành viên "{name}" (CCCD: {idCard}) khỏi {room} không?',
+      'delete_member_success': 'Đã xóa thành viên {name}',
       'price_per_month': 'Giá thuê',
       'tenant_representative': 'Đại diện',
       'unknown_tenant': 'Chưa rõ',
@@ -355,6 +362,13 @@ class AppLocalizations {
       'delete_room_confirm_msg': 'Are you sure you want to delete {room}? This room data will be permanently removed.',
       'delete_room_success': 'Successfully deleted {room}',
       'delete_now': 'Delete Now',
+      'delete_invoice': 'Delete Invoice',
+      'delete_invoice_confirm_title': 'Delete Invoice',
+      'delete_invoice_confirm_msg': 'Are you sure you want to delete the invoice for {room}? This record will be permanently removed.',
+      'delete_invoice_success': 'Invoice deleted successfully',
+      'delete_member_title': 'Delete Member',
+      'delete_member_confirm_msg': 'Are you sure you want to delete member "{name}" (ID: {idCard}) from {room}?',
+      'delete_member_success': 'Successfully deleted member {name}',
       'price_per_month': 'Rent Price',
       'tenant_representative': 'Tenant',
       'unknown_tenant': 'Unknown',
@@ -574,7 +588,14 @@ class AppLocalizations {
       'delete_room_confirm_title': '删除房源',
       'delete_room_confirm_msg': '您确定要删除 {room} 吗？该房源数据将从系统中永久删除。',
       'delete_room_success': '已成功删除 {room}',
-      'delete_now': '立即删除',
+      'delete_now': '静止删除',
+      'delete_invoice': '删除账单',
+      'delete_invoice_confirm_title': '删除账单',
+      'delete_invoice_confirm_msg': '您确定要删除 {room} 的账单吗？该记录将被永久删除。',
+      'delete_invoice_success': '已成功删除账单',
+      'delete_member_title': '删除成员',
+      'delete_member_confirm_msg': '您确定要从 {room} 中删除成员 "{name}"（身份证：{idCard}）吗？',
+      'delete_member_success': '已成功删除成员 {name}',
       'price_per_month': '月租金',
       'tenant_representative': '承租人',
       'unknown_tenant': '未知',
@@ -814,6 +835,17 @@ class AppLocalizations {
   String deleteRoomSuccess(String room) =>
       t('delete_room_success', {'room': room});
   String get deleteNow => t('delete_now');
+  String get deleteInvoice => t('delete_invoice');
+  String get deleteInvoiceConfirmTitle => t('delete_invoice_confirm_title');
+  String deleteInvoiceConfirmMsg(String room) =>
+      t('delete_invoice_confirm_msg', {'room': room});
+  String get deleteInvoiceSuccess => t('delete_invoice_success');
+  String get deleteMemberTitle => t('delete_member_title');
+  String deleteMemberConfirmMsg(String name, String idCard, String room) =>
+      t('delete_member_confirm_msg',
+          {'name': name, 'idCard': idCard, 'room': room});
+  String deleteMemberSuccess(String name) =>
+      t('delete_member_success', {'name': name});
   String get pricePerMonth => t('price_per_month');
   String get tenantRepresentative => t('tenant_representative');
   String get unknownTenant => t('unknown_tenant');
