@@ -1,3 +1,17 @@
+/// ============================================================================
+/// FILE: views/login_screen.dart
+/// UI SCREEN: MÀN HÌNH ĐĂNG NHẬP VÀ ĐĂNG KÝ TÀI KHOẢN (LoginScreen)
+/// ----------------------------------------------------------------------------
+/// NGHỆP VỤ & NÚT THAO TÁC TRÊN MÀN HÌNH NÀY:
+/// 1. NÚT CHUYỂN TAB ĐĂNG NHẬP / ĐĂNG KÝ (GestureDetector): Chuyển đổi giữa 2 Form.
+/// 2. NÚT "ĐĂNG NHẬP" (ElevatedButton): Gọi AuthProvider.login() xác thực tài khoản.
+/// 3. NÚT "ĐĂNG KÝ TÀI KHOẢN" (ElevatedButton): Gọi AuthProvider.register() tạo TK mới.
+/// 4. NÚT "Điền nhanh tài khoản Demo" (OutlinedButton): Tự động điền admin@gmail.com / 123456.
+/// 5. NÚT "Quên mật khẩu?" (TextButton): Mở Hộp thoại nhập Email khôi phục mật khẩu.
+/// 6. NÚT CON MẮT (IconButton): Ẩn / Hiện mật khẩu khi gõ.
+/// ============================================================================
+library;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
@@ -12,25 +26,27 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  // Key quản lý và kiểm tra dữ liệu Form Đăng nhập & Đăng ký
   final _loginFormKey = GlobalKey<FormState>();
   final _registerFormKey = GlobalKey<FormState>();
 
-  // Login Controllers
+  // Bộ điều khiển nhập dữ liệu (Controllers) Form Đăng nhập
   final _loginEmailController = TextEditingController();
   final _loginPasswordController = TextEditingController();
 
-  // Register Controllers
+  // Bộ điều khiển nhập dữ liệu (Controllers) Form Đăng ký
   final _registerNameController = TextEditingController();
   final _registerEmailController = TextEditingController();
   final _registerPasswordController = TextEditingController();
   final _registerConfirmPasswordController = TextEditingController();
 
+  // Các biến trạng thái hiển thị
   bool _isLoginPasswordVisible = false;
   bool _isRegisterPasswordVisible = false;
   bool _rememberMe = true;
   bool _isLoading = false;
 
-  // 0 = Login, 1 = Register
+  // Chỉ số Tab đang chọn (0 = Đăng nhập, 1 = Đăng ký)
   int _selectedTab = 0;
 
   @override
@@ -44,6 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  /// [NÚT THAO TÁC 4]: Hàm điền nhanh tài khoản mẫu Demo (admin@gmail.com / 123456)
   void _fillDemoAccount() {
     setState(() {
       _selectedTab = 0;
@@ -58,12 +75,14 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  /// [NÚT THAO TÁC 2]: Hàm thực thi Đăng nhập tài khoản
   Future<void> _handleLogin() async {
     if (_loginFormKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
       });
 
+      // Gọi AuthProvider để xác thực Email & Mật khẩu
       final authProvider = context.read<AuthProvider>();
       final errorMessage = await authProvider.login(
         _loginEmailController.text,
@@ -76,6 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       if (errorMessage != null) {
+        // Thông báo lỗi nếu sai mật khẩu hoặc chưa đăng ký
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(context.loc.t(errorMessage)),
@@ -84,6 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
       } else {
+        // Đăng nhập thành công -> AuthProvider tự đổi isLoggedIn thành true -> Tự chuyển sang MainScreen
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(context.loc.loginSuccess),
@@ -96,8 +117,10 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  /// [NÚT THAO TÁC 3]: Hàm thực thi Đăng ký tài khoản chủ trọ mới
   Future<void> _handleRegister() async {
     if (_registerFormKey.currentState!.validate()) {
+      // Kiểm tra mật khẩu xác nhận có khớp không
       if (_registerPasswordController.text !=
           _registerConfirmPasswordController.text) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -114,6 +137,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoading = true;
       });
 
+      // Gọi AuthProvider để tạo tài khoản mới
       final authProvider = context.read<AuthProvider>();
       final errorMessage = await authProvider.register(
         _registerNameController.text,
@@ -147,6 +171,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  /// [NÚT THAO TÁC 5]: Mở Dialog khôi phục mật khẩu khi quên
   void _showForgotPasswordDialog() {
     final loc = context.loc;
     final resetEmailController = TextEditingController();
@@ -229,7 +254,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Top Bar with Language Selector and Theme Toggle
+            // Thanh công cụ trên cùng: Nút Đổi Theme Sáng/Tối & Nút Chọn Ngôn Ngữ
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: Row(
@@ -250,7 +275,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // App Logo / Icon Header
+                      // Header Logo Ứng dụng
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -287,7 +312,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const LanguageSegmentedBar(),
                       const SizedBox(height: 20),
 
-                      // Form Card
+                      // Card chứa Form Đăng nhập / Đăng ký
                       Card(
                         elevation: 3,
                         shadowColor: Colors.black.withValues(alpha: 0.1),
@@ -299,7 +324,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              // Segmented Tab bar (Login / Register)
+                              // [NÚT THAO TÁC 1]: Segmented Tab Bar chuyển giữa Đăng Nhập / Đăng Ký
                               Container(
                                 padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
@@ -371,7 +396,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               const SizedBox(height: 20),
 
-                              // Form content depending on selected tab
+                              // Nội dung Form phụ thuộc vào Tab đang chọn
                               _selectedTab == 0 ? _buildLoginForm() : _buildRegisterForm(),
                             ],
                           ),
@@ -379,7 +404,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Quick Demo Card
+                      // [NÚT THAO TÁC 4]: Nút "Điền nhanh tài khoản Demo"
                       OutlinedButton.icon(
                         onPressed: _fillDemoAccount,
                         icon: const Icon(Icons.flash_on, size: 18, color: Color(0xFF3F51B5)),
@@ -406,6 +431,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  /// [FORM GIAO DIỆN 1]: Form Đăng Nhập
   Widget _buildLoginForm() {
     final loc = context.loc;
     return Form(
@@ -436,6 +462,7 @@ class _LoginScreenState extends State<LoginScreen> {
               labelText: loc.currentPassword,
               hintText: '••••••',
               prefixIcon: const Icon(Icons.lock_outlined),
+              // [NÚT THAO TÁC 6]: Nút Con mắt ẩn/hiện mật khẩu
               suffixIcon: IconButton(
                 icon: Icon(
                   _isLoginPasswordVisible
@@ -483,6 +510,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: const TextStyle(fontSize: 13),
               ),
               const Spacer(),
+              // [NÚT THAO TÁC 5]: Nút "Quên mật khẩu?"
               TextButton(
                 onPressed: _showForgotPasswordDialog,
                 style: TextButton.styleFrom(
@@ -502,6 +530,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ),
           const SizedBox(height: 24),
+          // [NÚT THAO TÁC 2]: Nút bấm "ĐĂNG NHẬP"
           ElevatedButton(
             onPressed: _isLoading ? null : _handleLogin,
             style: ElevatedButton.styleFrom(
@@ -534,6 +563,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  /// [FORM GIAO DIỆN 2]: Form Đăng Ký Tài Khoản
   Widget _buildRegisterForm() {
     final loc = context.loc;
     return Form(
@@ -626,6 +656,7 @@ class _LoginScreenState extends State<LoginScreen> {
             },
           ),
           const SizedBox(height: 24),
+          // [NÚT THAO TÁC 3]: Nút bấm "ĐĂNG KÝ TÀI KHOẢN"
           ElevatedButton(
             onPressed: _isLoading ? null : _handleRegister,
             style: ElevatedButton.styleFrom(
