@@ -1,3 +1,23 @@
+/// ============================================================================
+/// FILE: views/widgets/billing_bottom_sheet.dart
+/// HOẠT ĐỘNG UI: BOTTOMSHEET CHỐT TIỀN ĐIỆN NƯỚC (BillingBottomSheet)
+/// ----------------------------------------------------------------------------
+/// LUỒNG CHẠY CHI TIẾT CỦA CODE:
+/// 1. Đọc đơn giá điện, nước, dịch vụ cài đặt từ `SettingsProvider`.
+/// 2. Lấy chỉ số điện cũ và nước cũ trong thông tin phòng (`widget.room.oldElectricity`, `widget.room.oldWater`).
+/// 3. Cho người dùng nhập chỉ số điện mới và nước mới.
+/// 4. Tự động tính toán real-time tiêu thụ:
+///    • Điện = (Điện mới - Điện cũ) * Đơn giá điện
+///    • Nước = (Nước mới - Nước cũ) * Đơn giá nước
+///    • Tổng tiền = Tiền phòng + Tiền điện + Tiền nước + Phí dịch vụ
+/// 5. Bấm nút "Xác Nhận & Tạo Hóa Đơn":
+///    • Tạo một `Invoice` mới ở trạng thái `PENDING` (Chưa thu).
+///    • Cập nhật chỉ số điện/nước mới cho phòng trong SQLite CSDL.
+///    • Thêm hóa đơn vào danh sách `_invoices` và phát tín hiệu `notifyListeners()`.
+///    • Dashboard tự động cộng tiền vào TỔNG CÔNG NỢ CHƯA THU!
+/// ============================================================================
+library;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -17,19 +37,25 @@ class BillingBottomSheet extends StatefulWidget {
 }
 
 class _BillingBottomSheetState extends State<BillingBottomSheet> {
+  // Key quản lý và kiểm tra Form nhập
   final _formKey = GlobalKey<FormState>();
+
+  // Bộ điều khiển ô nhập chỉ số điện mới và nước mới
   late TextEditingController _newElecController;
   late TextEditingController _newWaterController;
 
+  // Biến lưu giá trị chỉ số điện mới và nước mới
   int _newElec = 0;
   int _newWater = 0;
 
+  // Định dạng tiền tệ VNĐ (đ)
   final NumberFormat _currencyFormatter =
       NumberFormat.currency(locale: 'vi_VN', symbol: 'đ', decimalDigits: 0);
 
   @override
   void initState() {
     super.initState();
+    // Khởi tạo giá trị ban đầu bằng chỉ số điện nước cũ
     _newElec = widget.room.oldElectricity;
     _newWater = widget.room.oldWater;
 
@@ -38,17 +64,20 @@ class _BillingBottomSheetState extends State<BillingBottomSheet> {
     _newWaterController =
         TextEditingController(text: widget.room.oldWater.toString());
 
+    // Đăng ký hàm tự động tính toán lại khi người dùng gõ số mới
     _newElecController.addListener(_updateCalculations);
     _newWaterController.addListener(_updateCalculations);
   }
 
   @override
   void dispose() {
+    // Giải phóng bộ nhớ của Controller khi đóng BottomSheet
     _newElecController.dispose();
     _newWaterController.dispose();
     super.dispose();
   }
 
+  /// [HÀM TÍNH TOÁN]: Cập nhật lại các con số tiêu thụ real-time khi gõ ô nhập
   void _updateCalculations() {
     setState(() {
       _newElec = int.tryParse(_newElecController.text.trim()) ??
@@ -60,6 +89,7 @@ class _BillingBottomSheetState extends State<BillingBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    // 1. Đọc cài đặt đơn giá điện, nước, dịch vụ từ SettingsProvider
     final settings = context.watch<SettingsProvider>();
     final loc = context.loc;
 
@@ -67,20 +97,25 @@ class _BillingBottomSheetState extends State<BillingBottomSheet> {
     final waterUnitPrice = settings.waterPrice;
     final serviceFeeUnit = settings.serviceFee;
 
+    // 2. PHÉP TÍNH 1: Điện tiêu thụ = Số mới - Số cũ -> Thành tiền điện
     final elecUsage = _newElec > widget.room.oldElectricity
         ? _newElec - widget.room.oldElectricity
         : 0;
     final elecTotal = elecUsage * elecUnitPrice;
 
+    // 3. PHÉP TÍNH 2: Nước tiêu thụ = Số mới - Số cũ -> Thành tiền nước
     final waterUsage = _newWater > widget.room.oldWater
         ? _newWater - widget.room.oldWater
         : 0;
     final waterTotal = waterUsage * waterUnitPrice;
 
+    // 4. PHÉP TÍNH 3: Tổng cộng cần thu = Giá phòng + Điện + Nước + Phí dịch vụ
     final grandTotal =
         widget.room.basePrice + elecTotal + waterTotal + serviceFeeUnit;
 
+    /// [HÀM XỬ LÝ]: Bấm nút Xác nhận & Tạo Hóa đơn
     void submitInvoice() async {
+      // Kiểm tra hợp lệ: Chỉ số mới không được bé hơn chỉ số cũ
       if (_formKey.currentState!.validate()) {
         final invoice = Invoice(
           id: 'inv_${DateTime.now().millisecondsSinceEpoch}',
@@ -96,12 +131,13 @@ class _BillingBottomSheetState extends State<BillingBottomSheet> {
           waterPrice: waterUnitPrice,
           serviceFee: serviceFeeUnit,
           createdAt: DateTime.now(),
-          status: InvoiceStatus.pending,
+          status: InvoiceStatus.pending, // Mặc định là CHƯA THANH TOÁN (PENDING)
         );
 
         final messenger = ScaffoldMessenger.of(context);
         final navigator = Navigator.of(context);
         try {
+          // Lưu hóa đơn vào SQLite CSDL & đổi chỉ số điện/nước cũ cho phòng
           await context.read<RentalProvider>().createInvoiceAndRecord(invoice);
         } on InvoiceException catch (e) {
           messenger.showSnackBar(
@@ -116,6 +152,7 @@ class _BillingBottomSheetState extends State<BillingBottomSheet> {
           return;
         }
 
+        // Đóng BottomSheet & Hiện thông báo tạo hóa đơn thành công
         if (context.mounted) {
           navigator.pop();
 
@@ -141,7 +178,7 @@ class _BillingBottomSheetState extends State<BillingBottomSheet> {
       ),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SingleChildScrollView(
         child: Form(
@@ -150,6 +187,7 @@ class _BillingBottomSheetState extends State<BillingBottomSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // HEADER 1: Thanh kéo và Tiêu đề chốt điện nước
               Center(
                 child: Container(
                   width: 40,
@@ -193,7 +231,7 @@ class _BillingBottomSheetState extends State<BillingBottomSheet> {
               ),
               const Divider(height: 24),
 
-              // Electricity section
+              // KHUNG NHẬP 1: Ô nhập chỉ số Điện mới
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -253,7 +291,7 @@ class _BillingBottomSheetState extends State<BillingBottomSheet> {
               ),
               const SizedBox(height: 14),
 
-              // Water section
+              // KHUNG NHẬP 2: Ô nhập chỉ số Nước mới
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -313,7 +351,7 @@ class _BillingBottomSheetState extends State<BillingBottomSheet> {
               ),
               const SizedBox(height: 16),
 
-              // Fee breakdown summary card
+              // BẢNG TÓM TẮT 3: Chi tiết các khoản chi phí hóa đơn
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
@@ -391,6 +429,8 @@ class _BillingBottomSheetState extends State<BillingBottomSheet> {
                 ),
               ),
               const SizedBox(height: 20),
+
+              // NÚT BẤM 4: Nút "Xác Nhận & Tạo Hóa Đơn"
               ElevatedButton.icon(
                 onPressed: submitInvoice,
                 icon: const Icon(Icons.receipt_long),
