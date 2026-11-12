@@ -1,3 +1,16 @@
+/// ============================================================================
+/// FILE: views/widgets/add_room_dialog.dart
+/// UI HỘP THOẠI: THÊM MỚI VÀ CHỈNH SỬA THÔNG TIN PHÒNG TRỌ (AddRoomDialog)
+/// ----------------------------------------------------------------------------
+/// NGHỆP VỤ & CÁC NÚT THAO TÁC TRÊN HỘP THOẠI NÀY:
+/// 1. CHỌN NGUỒN ẢNH (Camera / Thư viện / Thư viện mẫu / URL): Chọn ảnh làm đại diện phòng.
+/// 2. NHẬP THÔNG TIN CƠ BẢN (TextFormField): Tên phòng, Giá thuê, Số điện/nước ban đầu.
+/// 3. BỘ CHỌN TRẠNG THÁI (DropdownButton): Trống (Available), Đang thuê (Occupied), Bảo trì.
+/// 4. THÔNG TIN KHÁCH THUÊ (khi chuyển Occupied): Họ tên khách, SĐT, Tiền cọc, Ngày check-in/out.
+/// 5. NÚT "LƯU PHÒNG TRỌ" (ElevatedButton): Lưu dữ liệu vào CSDL SQLite & Supabase Cloud.
+/// ============================================================================
+library;
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -17,7 +30,10 @@ class AddRoomDialog extends StatefulWidget {
 }
 
 class _AddRoomDialogState extends State<AddRoomDialog> {
+  // Key quản lý và kiểm tra dữ liệu Form nhập phòng trọ
   final _formKey = GlobalKey<FormState>();
+
+  // Các bộ điều khiển ô nhập văn bản (Controllers)
   late final TextEditingController _nameController;
   late final TextEditingController _priceController;
   late final TextEditingController _elecController;
@@ -27,6 +43,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
   late final TextEditingController _occupantController;
   late final TextEditingController _depositController;
 
+  // Biến lưu trạng thái phòng, ảnh đại diện và ngày thuê
   late RoomStatus _selectedStatus;
   String? _imageUrl;
   DateTime? _checkInDate;
@@ -35,6 +52,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
   final ImagePicker _picker = ImagePicker();
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
 
+  // Danh sách đường dẫn ảnh mẫu có sẵn cho người dùng chọn nhanh
   final List<String> _sampleImages = [
     'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&auto=format&fit=crop&q=80',
     'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=600&auto=format&fit=crop&q=80',
@@ -47,6 +65,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
   void initState() {
     super.initState();
     final r = widget.roomToEdit;
+    // Điền sẵn thông tin phòng cũ nếu đang ở chế độ Chỉnh sửa
     _nameController = TextEditingController(text: r?.name ?? '');
     _priceController =
         TextEditingController(text: r != null ? r.basePrice.toStringAsFixed(0) : '');
@@ -68,6 +87,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
 
   @override
   void dispose() {
+    // Giải phóng bộ nhớ Controllers khi đóng Hộp thoại
     _nameController.dispose();
     _priceController.dispose();
     _elecController.dispose();
@@ -79,6 +99,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
     super.dispose();
   }
 
+  /// [NÚT THAO TÁC 1]: Chọn ngày Check-in (vào ở) hoặc Check-out (trả phòng dự kiến)
   Future<void> _selectDate(BuildContext context, bool isCheckIn) async {
     final loc = context.loc;
     final initialDate = isCheckIn
@@ -95,6 +116,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
       safeInitialDate = lastDate;
     }
 
+    // Mở lịch chọn ngày Tiếng Việt
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: safeInitialDate,
@@ -116,6 +138,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
     }
   }
 
+  /// [NÚT THAO TÁC 2A]: Chụp ảnh từ Camera hoặc chọn từ Thư viện thiết bị
   Future<void> _pickImage(ImageSource source) async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
@@ -141,6 +164,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
     }
   }
 
+  /// [NÚT THAO TÁC 2B]: Nhập đường dẫn link ảnh URL trực tiếp từ Internet
   void _showUrlInputDialog() {
     final loc = context.loc;
     final urlController = TextEditingController(text: _imageUrl ?? '');
@@ -176,6 +200,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
     );
   }
 
+  /// [NÚT THAO TÁC 2C]: Mở danh sách Thư viện ảnh phòng trọ mẫu có sẵn
   void _showSampleImagesPicker() {
     final loc = context.loc;
     showModalBottomSheet(
@@ -234,6 +259,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
     );
   }
 
+  /// [NÚT THAO TÁC 5]: Hàm thực thi LƯU THÔNG TIN PHÒNG TRỌ vào CSDL SQLite & Supabase
   Future<void> _submitForm() async {
     final loc = context.loc;
     if (_formKey.currentState!.validate()) {
@@ -256,14 +282,14 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
         ));
       }
 
-      // Phòng đang có khách không được đổi sang Trống/Bảo trì ở đây
-      // (bỏ qua quyết toán cọc, điện nước & danh sách CCCD) → dùng Trả phòng.
+      // BẢO VỆ NGHIỆP VỤ 1: Phòng đang cho thuê muốn chuyển về Trống bắt buộc phải qua Trả phòng
       if (isEditing &&
           widget.roomToEdit!.status == RoomStatus.occupied &&
           _selectedStatus != RoomStatus.occupied) {
         showError(loc.t('use_checkout_to_release'));
         return;
       }
+      // BẢO VỆ NGHIỆP VỤ 2: Ngày trả phòng không được nằm trước ngày vào ở
       if (_selectedStatus == RoomStatus.occupied &&
           _checkInDate != null &&
           _checkOutDate != null &&
@@ -324,6 +350,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
     }
   }
 
+  /// [GIAO DIỆN PHỤ 1]: Khung hiển thị ảnh xem trước (Image Preview)
   Widget _buildImagePreview() {
     final loc = context.loc;
     if (_imageUrl == null || _imageUrl!.isEmpty) {
@@ -383,6 +410,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                   ),
                 ),
         ),
+        // Nút Xóa ảnh hiện tại
         Positioned(
           top: 8,
           right: 8,
@@ -418,6 +446,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // HEADER 1: Tiêu đề Hộp thoại & Nút Đóng
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -437,11 +466,11 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
               ),
               const SizedBox(height: 12),
 
-              // Image Preview Area
+              // KHUNG 1: Ảnh đại diện phòng trọ
               _buildImagePreview(),
               const SizedBox(height: 8),
 
-              // Image Source Selection Buttons
+              // KHUNG 2: Hàng nút chọn nguồn ảnh (Camera / Gallery / Mẫu / URL)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -469,6 +498,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
               ),
               const Divider(height: 20),
 
+              // KHUNG 3: Ô Nhập Tên Phòng (Ví dụ: P.101)
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
@@ -495,6 +525,8 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                 },
               ),
               const SizedBox(height: 12),
+
+              // KHUNG 4: Ô Nhập Giá Thuê Cơ Bản (VNĐ/tháng)
               TextFormField(
                 controller: _priceController,
                 keyboardType: TextInputType.number,
@@ -518,6 +550,8 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                 },
               ),
               const SizedBox(height: 12),
+
+              // KHUNG 5: Hàng nhập Chỉ số Điện & Nước ban đầu
               Row(
                 children: [
                   Expanded(
@@ -564,6 +598,8 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                 ],
               ),
               const SizedBox(height: 12),
+
+              // [NÚT THAO TÁC 3]: Dropdown Chọn Trạng thái Phòng (Trống / Đang thuê / Bảo trì)
               DropdownButtonFormField<RoomStatus>(
                 initialValue: _selectedStatus,
                 decoration: InputDecoration(
@@ -585,7 +621,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                 },
               ),
 
-              // Customer / Occupant details section when room is occupied
+              // KHUNG 6: Chi tiết Khách thuê (khi chuyển sang trạng thái Đang thuê - Occupied)
               if (_selectedStatus == RoomStatus.occupied) ...[
                 const SizedBox(height: 16),
                 Container(
@@ -607,6 +643,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                         ),
                       ),
                       const SizedBox(height: 12),
+                      // Ô Nhập Họ tên khách đại diện thuê
                       TextFormField(
                         controller: _tenantController,
                         decoration: InputDecoration(
@@ -614,7 +651,6 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                           hintText: 'Nguyễn Văn A',
                           prefixIcon: const Icon(Icons.person),
                         ),
-                        // Phòng đang thuê phải biết ai thuê (hóa đơn in tên khách)
                         validator: (value) =>
                             (value == null || value.trim().isEmpty)
                                 ? loc.requiredField
@@ -646,7 +682,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                               ),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
-                                  return null; // mặc định 1 người
+                                  return null;
                                 }
                                 final n = int.tryParse(value.trim());
                                 if (n == null) return loc.invalidNumber;
@@ -658,6 +694,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                         ],
                       ),
                       const SizedBox(height: 12),
+                      // Ô Nhập Tiền đặt cọc giữ chỗ
                       TextFormField(
                         controller: _depositController,
                         keyboardType: TextInputType.number,
@@ -668,7 +705,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return null; // không cọc
+                            return null;
                           }
                           final d = double.tryParse(value.trim());
                           if (d == null) return loc.invalidNumber;
@@ -678,7 +715,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Check-in & Check-out dates selection
+                      // [NÚT THAO TÁC 4]: Bộ chọn Ngày Check-in & Check-out
                       Row(
                         children: [
                           Expanded(
@@ -765,6 +802,8 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                 ),
               ],
               const SizedBox(height: 20),
+
+              // [NÚT THAO TÁC 5]: Nút "LƯU PHÒNG TRỌ" (ElevatedButton)
               ElevatedButton.icon(
                 onPressed: _submitForm,
                 style: ElevatedButton.styleFrom(
