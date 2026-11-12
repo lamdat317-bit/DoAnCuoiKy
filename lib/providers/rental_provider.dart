@@ -182,7 +182,7 @@ class RentalProvider extends ChangeNotifier {
         .fold(0.0, (sum, inv) => sum + inv.totalAmount);
   }
 
-  /// Tổng công nợ chưa thu (Tổng tiền của các hóa đơn chưa thanh toán)
+  /// Tổng nợ chưa thu (Tổng tiền của các hóa đơn chưa thanh toán)
   double get totalUnpaidDebt => _invoices
       .where((inv) => inv.status == InvoiceStatus.pending)
       .fold(0.0, (sum, inv) => sum + inv.totalAmount);

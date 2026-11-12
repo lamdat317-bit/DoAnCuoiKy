@@ -1,3 +1,16 @@
+/// ============================================================================
+/// FILE: views/widgets/room_card.dart
+/// UI WIDGET: Thẻ Hiển Thị Thông Tin Chi Tiết Phòng Trọ (RoomCard)
+/// ----------------------------------------------------------------------------
+/// DANH SÁCH CÁC NÚT BẤM & HÀM THAO TÁC TRÊN THẺ PHÒNG:
+/// 1. NÚT "Tính tiền" (OutlinedButton): Mở BillingBottomSheet chốt số điện nước.
+/// 2. NÚT "Cư dân/CCCD" (OutlinedButton): Mở RoomMembersDialog quản lý CCCD.
+/// 3. NÚT "Báo sự cố" (OutlinedButton): Mở AddMaintenanceDialog báo hỏng hóc.
+/// 4. NÚT ĐỎ "Out: dd/MM/yyyy ✏️" (InkWell): Bấm 1-chạm đổi ngày check-out nhanh.
+/// 5. MENU 3 CHẤM "⋮" (PopupMenuButton): Sửa phòng, Trả phòng, Đổi trạng thái, Xóa phòng.
+/// ============================================================================
+library;
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -11,14 +24,12 @@ import 'billing_bottom_sheet.dart';
 import 'checkout_dialog.dart';
 import 'room_members_dialog.dart';
 
-/// ============================================================================
-/// UI WIDGET: Thẻ Hiển Thị Thông Tin Phòng Trọ (RoomCard)
-/// ============================================================================
 class RoomCard extends StatelessWidget {
   final Room room;
 
   const RoomCard({super.key, required this.room});
 
+  // [HÀM PHỤ]: Lấy màu nền cho Thẻ Trạng thái (Trống: Xanh lá, Đang thuê: Cam, Bảo trì: Xám)
   Color _getStatusBackgroundColor(RoomStatus status) {
     switch (status) {
       case RoomStatus.available:
@@ -30,6 +41,7 @@ class RoomCard extends StatelessWidget {
     }
   }
 
+  // [HÀM PHỤ]: Lấy màu chữ cho Thẻ Trạng thái
   Color _getStatusTextColor(RoomStatus status) {
     switch (status) {
       case RoomStatus.available:
@@ -41,7 +53,9 @@ class RoomCard extends StatelessWidget {
     }
   }
 
+  /// [NÚT THAO TÁC 1]: Mở Hộp thoại Chốt Tiền Điện Nước tháng này (BillingBottomSheet)
   void _openBillingBottomSheet(BuildContext context) {
+    // Kiểm tra bảo vệ: Nếu phòng đã lập hóa đơn tháng này rồi thì ngăn chặn chốt trùng
     if (context.read<RentalProvider>().hasInvoiceThisMonth(room.id)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -60,6 +74,7 @@ class RoomCard extends StatelessWidget {
     );
   }
 
+  /// [NÚT THAO TÁC 2]: Mở Hộp thoại Trả phòng & Quyết toán tiền cọc (CheckoutDialog)
   void _openCheckoutDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -67,6 +82,7 @@ class RoomCard extends StatelessWidget {
     );
   }
 
+  /// [NÚT THAO TÁC 3]: Mở Hộp thoại Chỉnh sửa thông tin & Ảnh phòng (AddRoomDialog)
   void _openEditDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -74,6 +90,7 @@ class RoomCard extends StatelessWidget {
     );
   }
 
+  /// [NÚT THAO TÁC 4]: Mở Hộp thoại Quản lý Cư dân & Đăng ký số CCCD (RoomMembersDialog)
   void _openMembersDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -81,6 +98,7 @@ class RoomCard extends StatelessWidget {
     );
   }
 
+  /// [NÚT THAO TÁC 5]: Mở Hộp thoại Báo cáo sự cố hỏng hóc thiết bị (AddMaintenanceDialog)
   void _openMaintenanceDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -88,6 +106,7 @@ class RoomCard extends StatelessWidget {
     );
   }
 
+  /// [NÚT THAO TÁC 6]: Đổi ngày Check-out 1-chạm nhanh ngay trên thẻ phòng
   Future<void> _quickChangeCheckOutDate(BuildContext context) async {
     final loc = context.loc;
     final initialDate = room.checkOutDate ?? DateTime.now().add(const Duration(days: 180));
@@ -101,6 +120,7 @@ class RoomCard extends StatelessWidget {
       safeInitialDate = lastDate;
     }
 
+    // Mở lịch chọn ngày Tiếng Việt
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: safeInitialDate,
@@ -111,6 +131,7 @@ class RoomCard extends StatelessWidget {
       cancelText: loc.cancel.toUpperCase(),
     );
 
+    // Khi người dùng chọn ngày mới -> Cập nhật thông tin phòng & Lưu CSDL SQLite
     if (picked != null && context.mounted) {
       final updatedRoom = room.copyWith(checkOutDate: picked);
       context.read<RentalProvider>().updateRoom(updatedRoom);
@@ -136,15 +157,18 @@ class RoomCard extends StatelessWidget {
     );
   }
 
+  /// [NÚT THAO TÁC 7]: Mở Dialog Xác nhận Xóa phòng trọ khỏi CSDL
   void _confirmDelete(BuildContext context) {
     final loc = context.loc;
     final provider = context.read<RentalProvider>();
-    // Kiểm tra trước khi hỏi xác nhận để báo lý do không xóa được
+
+    // BẢO VỆ NGHIỆP VỤ 1: Nếu phòng đang có khách ở -> Ngăn không cho xóa
     if (room.status == RoomStatus.occupied) {
       _showError(context,
           loc.t('room_occupied_cannot_delete', {'room': room.name}));
       return;
     }
+    // BẢO VỆ NGHIỆP VỤ 2: Nếu phòng đang nợ hóa đơn chưa thu -> Ngăn không cho xóa
     final unpaid = provider.unpaidInvoicesOfRoom(room.id).length;
     if (unpaid > 0) {
       _showError(
@@ -153,6 +177,7 @@ class RoomCard extends StatelessWidget {
               {'room': room.name, 'count': '$unpaid'}));
       return;
     }
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -178,6 +203,7 @@ class RoomCard extends StatelessWidget {
               Navigator.of(ctx).pop();
               final messenger = ScaffoldMessenger.of(context);
               try {
+                // Xóa phòng trọ khỏi SQLite
                 await provider.deleteRoom(room.id);
               } on RoomDeleteException catch (e) {
                 messenger.showSnackBar(SnackBar(
@@ -208,6 +234,7 @@ class RoomCard extends StatelessWidget {
     );
   }
 
+  /// [NÚT THAO TÁC 8]: Mở Dialog Đổi nhanh trạng thái phòng (Trống / Bảo trì)
   void _showChangeStatusDialog(BuildContext context) {
     final loc = context.loc;
     showDialog(
@@ -225,12 +252,10 @@ class RoomCard extends StatelessWidget {
               onTap: () {
                 Navigator.of(ctx).pop();
                 if (status == room.status) return;
-                // Phòng đang thuê → phải qua Trả phòng để quyết toán cọc & điện nước
                 if (room.status == RoomStatus.occupied) {
                   _showError(context, loc.t('use_checkout_to_release'));
                   return;
                 }
-                // Cho thuê → cần nhập thông tin khách, ngày vào ở, tiền cọc
                 if (status == RoomStatus.occupied) {
                   _showError(context, loc.t('use_edit_to_rent'));
                   _openEditDialog(context);
@@ -245,6 +270,7 @@ class RoomCard extends StatelessWidget {
     );
   }
 
+  /// [GIAO DIỆN PHỤ 1]: Khung Ảnh đại diện phòng trọ
   Widget _buildRoomImage(BuildContext context) {
     final loc = context.loc;
     if (room.imageUrl == null || room.imageUrl!.isEmpty) {
@@ -324,13 +350,13 @@ class RoomCard extends StatelessWidget {
           // Banner Ảnh phòng trọ
           _buildRoomImage(context),
 
-          // Nội dung chi tiết phòng trọ
+          // Nội dung chi tiết thông tin phòng trọ
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Hàng 1: Tên phòng, Badge trạng thái & Popup Menu
+                // HÀNG 1: Tên phòng, Thẻ Trạng thái & Menu 3 chấm ⋮
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -350,6 +376,7 @@ class RoomCard extends StatelessWidget {
                     ),
                     Row(
                       children: [
+                        // Nút Đổi trạng thái nhanh dạng Chip
                         InkWell(
                           onTap: () => _showChangeStatusDialog(context),
                           borderRadius: BorderRadius.circular(12),
@@ -381,6 +408,8 @@ class RoomCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 4),
+
+                        // MENU 3 CHẤM "⋮": Danh sách tất cả các tùy chọn thao tác phòng
                         PopupMenuButton<String>(
                           icon: const Icon(Icons.more_vert, size: 20),
                           tooltip: loc.edit,
@@ -491,7 +520,7 @@ class RoomCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
 
-                // Rent price
+                // HÀNG 2: Giá thuê phòng hàng tháng
                 Row(
                   children: [
                     const Icon(Icons.sell_outlined, size: 16, color: Colors.grey),
@@ -508,7 +537,7 @@ class RoomCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
 
-                // Electricity and Water meters
+                // HÀNG 3: Đồng hồ chỉ số Điện (kWh) & Nước (m³) cũ
                 Row(
                   children: [
                     const Icon(Icons.flash_on, size: 16, color: Colors.amber),
@@ -525,7 +554,7 @@ class RoomCard extends StatelessWidget {
                   ],
                 ),
 
-                // Customer & Occupant Info if occupied
+                // HÀNG 4: Thông tin Khách thuê, Số người ở, Tiền cọc & Ngày Check-in/out (Nếu phòng đang thuê)
                 if (room.status == RoomStatus.occupied) ...[
                   const Divider(height: 20),
                   Row(
@@ -584,6 +613,7 @@ class RoomCard extends StatelessWidget {
                           ],
                         ),
                       ),
+                      // Nút bấm Đổi ngày Check-out 1-chạm
                       Expanded(
                         child: InkWell(
                           onTap: () => _quickChangeCheckOutDate(context),
@@ -623,9 +653,10 @@ class RoomCard extends StatelessWidget {
 
                 const Divider(height: 20),
 
-                // Bottom Action Buttons Row (Tính tiền, Trả phòng, Thành viên, Báo sự cố, Sửa)
+                // HÀNG 5: Hàng nút bấm thao tác nhanh dưới thẻ phòng
                 Row(
                   children: [
+                    // Nút "Tính tiền" chốt số điện nước
                     if (room.status == RoomStatus.occupied) ...[
                       Expanded(
                         child: OutlinedButton.icon(
@@ -641,6 +672,7 @@ class RoomCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                     ],
+                    // Nút "Cư dân/CCCD" quản lý danh sách người ở
                     OutlinedButton.icon(
                       onPressed: () => _openMembersDialog(context),
                       icon: const Icon(Icons.badge_outlined, size: 16),
@@ -652,6 +684,7 @@ class RoomCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
+                    // Nút "Báo sự cố" gửi báo cáo hỏng hóc thiết bị
                     OutlinedButton.icon(
                       onPressed: () => _openMaintenanceDialog(context),
                       icon: const Icon(Icons.build_outlined, size: 16),
