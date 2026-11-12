@@ -1,11 +1,13 @@
 /// ============================================================================
 /// FILE: views/invoice_detail_dialog.dart
 /// HỘP THOẠI: Xem Chi Tiết Hóa Đơn, Mã VietQR & Đã Thanh Toán (InvoiceDetailDialog)
-/// CHỨC NĂNG:
-/// - Thiết kế giao diện khung hóa đơn hiện đại (trắng xám tinh tế, không màu vàng).
-/// - Tự động tạo ảnh mã QR chuyển khoản VietQR chuẩn ngân hàng.
-/// - Nút "Đã thanh toán" chuyển trạng thái PENDING ➔ PAID.
-/// - Nút "Chia sẻ Zalo" gửi văn bản hóa đơn qua Zalo/Messenger (`share_plus`).
+/// ----------------------------------------------------------------------------
+/// NGHỆP VỤ & NÚT THAO TÁC TRÊN HỘP THOẠI NÀY:
+/// 1. MÃ VIETQR TỰ ĐỘNG (Image.network): Tải ảnh QR chuyển khoản Napas247 từ img.vietqr.io.
+/// 2. NÚT "Đã thanh toán" (ElevatedButton): Gạch nợ hóa đơn sang PAID & trừ công nợ Dashboard.
+/// 3. NÚT "Chia sẻ Zalo" (OutlinedButton): Gọi Share.share() gửi hóa đơn sang Zalo/Messenger.
+/// 4. NÚT XÓA HÓA ĐƠN (IconButton): Mở Dialog xác nhận xóa hóa đơn khỏi SQLite CSDL.
+/// 5. NÚT "Đóng" (TextButton): Đóng Hộp thoại.
 /// ============================================================================
 library;
 
@@ -24,6 +26,7 @@ class InvoiceDetailDialog extends StatelessWidget {
 
   const InvoiceDetailDialog({super.key, required this.invoice});
 
+  /// [NÚT THAO TÁC 3]: Hàm thực thi chia sẻ hóa đơn qua Zalo / Messenger (`share_plus`)
   void _shareInvoice(BuildContext context) {
     final loc = context.loc;
     final currency = NumberFormat.currency(
@@ -54,6 +57,7 @@ ${loc.thankYou}
     Share.share(shareText, subject: loc.invoiceShareSubject(invoice.roomName));
   }
 
+  /// [NÚT THAO TÁC 4]: Mở Dialog xác nhận Xóa hóa đơn khỏi CSDL SQLite
   void _confirmDeleteInvoice(BuildContext context) {
     final loc = context.loc;
     showDialog(
@@ -76,8 +80,6 @@ ${loc.thankYou}
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              // Lấy provider & messenger TRƯỚC khi đóng dialog, vì sau khi
-              // pop thì context của dialog không còn dùng được nữa.
               final provider = context.read<RentalProvider>();
               final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(ctx);
@@ -120,6 +122,7 @@ ${loc.thankYou}
     );
     final amountInt = invoice.totalAmount.toInt();
 
+    // 1. TỰ ĐỘNG TẠO ĐƯỜNG DẪN ẢNH MÃ VIETQR NGÂN HÀNG TRỰC TIẾP
     final vietQrUrl =
         'https://img.vietqr.io/image/$cleanBankCode-$cleanAccountNo-compact2.png?amount=$amountInt&addInfo=$cleanContent&accountName=$cleanHolder';
 
@@ -131,7 +134,7 @@ ${loc.thankYou}
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header Row: Icon, Room Title & Status Chip
+            // HEADER 1: Tên phòng & Thẻ trạng thái Chưa thu / Đã thu
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -196,7 +199,7 @@ ${loc.thankYou}
             ),
             const SizedBox(height: 14),
 
-            // Tenant & Creation Date Banner
+            // HEADER 2: Tên đại diện thuê & Ngày tạo hóa đơn
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -232,7 +235,7 @@ ${loc.thankYou}
             ),
             const SizedBox(height: 14),
 
-            // Invoice Breakdown Clean Card
+            // KHUNG 3: Bảng phân rã chi tiết các khoản chi phí
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
@@ -294,7 +297,7 @@ ${loc.thankYou}
             ),
             const SizedBox(height: 14),
 
-            // Clean VietQR Card Section
+            // KHUNG 4: Thẻ hiển thị Mã QR chuyển khoản VietQR Napas247
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -314,6 +317,7 @@ ${loc.thankYou}
                     ),
                   ),
                   const SizedBox(height: 8),
+                  // TẢI VÀ HIỂN THỊ ẢNH MÃ VIETQR NGÂN HÀNG THẬT
                   ClipRRect(
                     borderRadius: BorderRadius.circular(10),
                     child: Image.network(
@@ -355,20 +359,23 @@ ${loc.thankYou}
             ),
             const SizedBox(height: 18),
 
-            // Action Buttons Row
+            // HÀNG NÚT THAO TÁC 5: Nút Xóa, Đóng, Chia sẻ Zalo
             Row(
               children: [
+                // [NÚT THAO TÁC 4]: Nút Biểu tượng Xóa Hóa Đơn
                 IconButton(
                   icon: const Icon(Icons.delete_outline, color: Colors.red),
                   tooltip: loc.deleteInvoice,
                   onPressed: () => _confirmDeleteInvoice(context),
                 ),
                 const Spacer(),
+                // [NÚT THAO TÁC 5]: Nút Đóng Hộp thoại
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: Text(loc.close),
                 ),
                 const SizedBox(width: 6),
+                // [NÚT THAO TÁC 3]: Nút "Chia sẻ Zalo" gửi văn bản hóa đơn qua Zalo
                 OutlinedButton.icon(
                   onPressed: () => _shareInvoice(context),
                   icon: const Icon(Icons.share, size: 16),
@@ -380,8 +387,8 @@ ${loc.thankYou}
                 ),
               ],
             ),
-            // Nút "Đã thanh toán" nằm riêng 1 hàng, rộng hết khung
-            // (để chung hàng với các nút khác bị tràn màn hình)
+
+            // [NÚT THAO TÁC 2]: Nút bấm "Đã thanh toán" (Gạch nợ sang PAID & trừ công nợ)
             if (!invoice.isPaid) ...[
               const SizedBox(height: 8),
               SizedBox(
@@ -392,6 +399,7 @@ ${loc.thankYou}
                     foregroundColor: Colors.white,
                   ),
                   onPressed: () async {
+                    // Gọi RentalProvider gạch nợ hóa đơn & trừ công nợ trên Dashboard
                     await context.read<RentalProvider>().markInvoiceAsPaid(
                       invoice.id,
                     );
