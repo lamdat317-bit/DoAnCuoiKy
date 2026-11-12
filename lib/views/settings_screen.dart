@@ -1,3 +1,16 @@
+/// ============================================================================
+/// FILE: views/settings_screen.dart
+/// UI SCREEN: MÀN HÌNH CÀI ĐẶT BIỂU PHÍ & VIETQR (SettingsScreen)
+/// ----------------------------------------------------------------------------
+/// NGHỆP VỤ & NÚT THAO TÁC TRÊN MÀN HÌNH NÀY:
+/// 1. BỘ CHỌN NGÔN NGỮ (ListTile): Chuyển đổi ngôn ngữ app (Việt / Anh / Trung).
+/// 2. BỘ CHỌN THEME (InkWell): Đổi Chế độ giao diện Sáng (Light) / Tối (Dark).
+/// 3. KHUNG NHẬP BIỂU PHÍ (TextFormField): Đơn giá Điện (đ/kWh), Nước (đ/m³), Dịch vụ.
+/// 4. KHUNG CẤU HÌNH VIETQR (DropdownButton & TextFormField): Ngân hàng, STK, Tên chủ TK.
+/// 5. NÚT "LƯU TẤT CẢ CÀI ĐẶT" (ElevatedButton): Lưu cấu hình vào SharedPreferences & SQLite.
+/// ============================================================================
+library;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
@@ -12,8 +25,10 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  // Key quản lý và kiểm tra dữ liệu Form Cài đặt
   final _formKey = GlobalKey<FormState>();
 
+  // Bộ điều khiển ô nhập (Controllers) đơn giá & thông tin ngân hàng
   late TextEditingController _elecController;
   late TextEditingController _waterController;
   late TextEditingController _serviceController;
@@ -21,6 +36,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _accountNoController;
   late TextEditingController _holderController;
 
+  // Danh sách các ngân hàng phổ biến hỗ trợ VietQR
   final Map<String, String> _popularBanks = {
     'MB': 'MBBank (Quân Đội)',
     'VCB': 'Vietcombank',
@@ -35,6 +51,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
+    // Đọc các giá trị cài đặt hiện tại từ SettingsProvider để điền sẵn vào ô nhập
     final settings = context.read<SettingsProvider>();
     _elecController =
         TextEditingController(text: settings.elecPrice.toStringAsFixed(0));
@@ -49,6 +66,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   void dispose() {
+    // Giải phóng bộ nhớ của các Controller khi thoát màn hình
     _elecController.dispose();
     _waterController.dispose();
     _serviceController.dispose();
@@ -58,6 +76,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
+  /// [NÚT THAO TÁC 5]: Hàm lưu toàn bộ cài đặt đơn giá & VietQR vào SharedPreferences
   void _saveSettings() {
     if (_formKey.currentState!.validate()) {
       final elec = double.parse(_elecController.text.trim());
@@ -67,6 +86,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final account = _accountNoController.text.trim();
       final holder = _holderController.text.trim();
 
+      // Cập nhật cài đặt mới vào SettingsProvider & SharedPreferences
       context.read<SettingsProvider>().updateSettings(
             elecPrice: elec,
             waterPrice: water,
@@ -104,7 +124,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Language Selector Section
+              // ===============================================================
+              // KHUNG 1: BỘ CHỌN NGÔN NGỮ HIỂN THỊ (Tiếng Việt / English / 中文)
+              // ===============================================================
               Text(
                 loc.languageSectionTitle,
                 style: const TextStyle(
@@ -151,6 +173,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           width: isSelected ? 1.5 : 1,
                         ),
                       ),
+                      // [NÚT THAO TÁC 1]: Bấm chọn ngôn ngữ hiển thị
                       child: ListTile(
                         dense: true,
                         leading: Text(
@@ -181,7 +204,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Theme Selector Section
+              // ===============================================================
+              // KHUNG 2: BỘ CHỌN GIAO DIỆN SÁNG / TỐI (Dark Mode / Light Mode)
+              // ===============================================================
               Text(
                 loc.themeSectionTitle,
                 style: const TextStyle(
@@ -211,6 +236,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 padding: const EdgeInsets.all(12),
                 child: Row(
                   children: [
+                    // [NÚT THAO TÁC 2A]: Chọn Chế độ Sáng (Light Mode)
                     Expanded(
                       child: InkWell(
                         onTap: () =>
@@ -249,6 +275,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
+                    // [NÚT THAO TÁC 2B]: Chọn Chế độ Tối (Dark Mode)
                     Expanded(
                       child: InkWell(
                         onTap: () =>
@@ -291,7 +318,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Unit Price Card
+              // ===============================================================
+              // KHUNG 3: CẤU HÌNH BIỂU PHÍ DỊCH VỤ MẶC ĐỊNH (Điện, Nước, Phí dịch vụ)
+              // ===============================================================
               Text(
                 loc.feeSectionTitle,
                 style: const TextStyle(
@@ -301,6 +330,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 12),
+              // Ô Nhập Đơn Giá Điện (đ/kWh)
               TextFormField(
                 controller: _elecController,
                 keyboardType: TextInputType.number,
@@ -320,6 +350,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
               const SizedBox(height: 12),
+              // Ô Nhập Đơn Giá Nước (đ/m³)
               TextFormField(
                 controller: _waterController,
                 keyboardType: TextInputType.number,
@@ -339,6 +370,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
               const SizedBox(height: 12),
+              // Ô Nhập Phí Dịch Vụ Cố Định (Wifi + Rác)
               TextFormField(
                 controller: _serviceController,
                 keyboardType: TextInputType.number,
@@ -360,7 +392,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Bank Details Card for VietQR
+              // ===============================================================
+              // KHUNG 4: CẤU HÌNH TÀI KHOẢN NGÂN HÀNG VIETQR
+              // ===============================================================
               Text(
                 loc.vietqrSectionTitle,
                 style: const TextStyle(
@@ -370,6 +404,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 12),
+              // [NÚT THAO TÁC 4]: Dropdown Chọn Ngân hàng nhận chuyển khoản (MB, VCB, TCB...)
               DropdownButtonFormField<String>(
                 initialValue: _popularBanks.containsKey(_bankCodeController.text)
                     ? _bankCodeController.text
@@ -394,6 +429,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
               const SizedBox(height: 12),
+              // Ô Nhập Số Tài Khoản Ngân Hàng
               TextFormField(
                 controller: _accountNoController,
                 keyboardType: TextInputType.number,
@@ -410,6 +446,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
               const SizedBox(height: 12),
+              // Ô Nhập Tên Chủ Tài Khoản (In hoa không dấu)
               TextFormField(
                 controller: _holderController,
                 textCapitalization: TextCapitalization.characters,
@@ -427,6 +464,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 28),
 
+              // ===============================================================
+              // [NÚT THAO TÁC 5]: NÚT "LƯU TẤT CẢ CÀI ĐẶT" (ElevatedButton)
+              // ===============================================================
               ElevatedButton.icon(
                 onPressed: _saveSettings,
                 style: ElevatedButton.styleFrom(
